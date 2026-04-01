@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<!-- wheel_macro.xacro — parameterised wheel link + joint -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!--
+    Macro: wheel
+    Parameters:
+      prefix  — "left" or "right"
+      y_offset — lateral offset from base_link origin (positive = left)
+      radius  — wheel radius
+      width   — wheel width (cylinder length)
+  -->
+  <xacro:macro name="wheel" params="prefix y_offset radius width">
+
+    <link name="${prefix}_wheel">
+      <visual>
+        <geometry>
+          <cylinder radius="${radius}" length="${width}"/>
+        </geometry>
+        <material name="dark_grey"/>
+      </visual>
+      <collision>
+        <geometry>
+          <cylinder radius="${radius}" length="${width}"/>
+        </geometry>
+      </collision>
+      <inertial>
+        <mass value="0.5"/>
+        <!-- Cylinder inertia: Ixx=Iyy = m/12*(3r²+h²), Izz = m*r²/2 -->
+        <inertia ixx="${0.5/12.0*(3*radius*radius + width*width)}"
+                 ixy="0" ixz="0"
+                 iyy="${0.5/12.0*(3*radius*radius + width*width)}"
+                 iyz="0"
+                 izz="${0.5*radius*radius/2.0}"/>
+      </inertial>
+    </link>
+
+    <joint name="${prefix}_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${prefix}_wheel"/>
+      <origin xyz="0 ${y_offset} 0" rpy="${-pi/2} 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+
+  </xacro:macro>
+
+</robot>

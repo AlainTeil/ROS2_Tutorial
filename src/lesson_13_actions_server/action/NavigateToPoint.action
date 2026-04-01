@@ -1,0 +1,15 @@
+# NavigateToPoint.action
+# Simulates navigating a robot to a 2D point.
+
+# Goal — where to go
+float64 target_x   # Target X position (meters)
+float64 target_y   # Target Y position (meters)
+---
+# Result — outcome of the navigation
+bool    success        # True if reached the goal
+float64 elapsed_time   # Total time taken (seconds)
+---
+# Feedback — periodic progress updates
+float64 distance_remaining  # Distance still to travel (meters)
+float64 current_x           # Current X position
+float64 current_y           # Current Y position

@@ -1,0 +1,55 @@
+# Doxyfile for ROS2 C++20 Tutorial
+# Doxygen configuration file — generates HTML documentation for all lessons.
+
+PROJECT_NAME           = "ROS2 C++20 Tutorial"
+PROJECT_NUMBER         = "1.0"
+PROJECT_BRIEF          = "A 32-lesson progressive ROS2 Jazzy tutorial using modern C++20"
+OUTPUT_DIRECTORY       = docs
+CREATE_SUBDIRS         = NO
+
+# Input sources
+INPUT                  = src README.md
+RECURSIVE              = YES
+FILE_PATTERNS          = *.hpp *.h *.cpp *.md
+EXCLUDE_PATTERNS       = */test/* */build/* */install/* */log/*
+
+# Extraction
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = YES
+
+# Source browsing
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+STRIP_CODE_COMMENTS    = NO
+
+# Output
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+HTML_COLORSTYLE        = LIGHT
+GENERATE_LATEX         = NO
+GENERATE_XML           = NO
+
+# Diagrams
+HAVE_DOT               = NO
+
+# Preprocessing
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+PREDEFINED             = __cplusplus=202002L
+
+# Warnings
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = YES
+
+# Markdown
+USE_MDFILE_AS_MAINPAGE = ./README.md
+MARKDOWN_SUPPORT       = YES
+
+# Miscellaneous
+SORT_BRIEF_DOCS        = YES
+SORT_MEMBERS_CTORS_1ST = YES
+SHOW_NAMESPACES        = YES
+QUIET                  = NO

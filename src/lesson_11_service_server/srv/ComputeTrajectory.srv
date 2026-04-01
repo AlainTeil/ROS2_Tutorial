@@ -1,0 +1,12 @@
+# ComputeTrajectory.srv
+# Compute a straight-line trajectory between two 2D points.
+
+float64 start_x       # Start position X (meters)
+float64 start_y       # Start position Y (meters)
+float64 goal_x        # Goal position X (meters)
+float64 goal_y        # Goal position Y (meters)
+float64 max_velocity   # Maximum velocity (m/s)
+---
+float64 distance       # Euclidean distance (meters)
+float64 estimated_time # Estimated travel time (seconds)
+bool    feasible       # Whether the trajectory is feasible

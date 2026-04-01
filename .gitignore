@@ -1,0 +1,31 @@
+# colcon build outputs
+build/
+install/
+log/
+
+# C++ build artifacts
+*.o
+*.a
+*.so
+*.dylib
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.pyc
+
+# Doxygen output
+docs/
+
+# compile_commands.json (generated per-package by CMake)
+**/compile_commands.json
+
+# OS files
+.DS_Store
+Thumbs.db

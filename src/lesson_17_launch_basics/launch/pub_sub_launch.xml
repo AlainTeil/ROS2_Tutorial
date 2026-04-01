@@ -1,0 +1,14 @@
+<!-- XML launch equivalent for pub_sub_launch.py -->
+<launch>
+  <arg name="topic" default="counter" description="Topic name"/>
+
+  <node pkg="lesson_07_topic_publisher" exec="number_publisher"
+        name="number_publisher" output="screen">
+    <remap from="counter" to="$(var topic)"/>
+  </node>
+
+  <node pkg="lesson_08_topic_subscriber" exec="number_subscriber"
+        name="number_subscriber" output="screen">
+    <remap from="counter" to="$(var topic)"/>
+  </node>
+</launch>

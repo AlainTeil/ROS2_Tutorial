@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<!--
+  simplebot.urdf.xacro — Top-level Xacro for SimpleBot
+  Generates the same URDF as lesson_24 but uses properties, macros,
+  and includes for maintainability.
+-->
+<robot name="simplebot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Includes -->
+  <xacro:include filename="$(find lesson_25_xacro_urdf)/urdf/materials.xacro"/>
+  <xacro:include filename="$(find lesson_25_xacro_urdf)/urdf/wheel_macro.xacro"/>
+
+  <!-- ==================== Properties ==================== -->
+  <xacro:property name="chassis_length" value="0.4"/>
+  <xacro:property name="chassis_width"  value="0.3"/>
+  <xacro:property name="chassis_height" value="0.1"/>
+  <xacro:property name="chassis_mass"   value="5.0"/>
+
+  <xacro:property name="wheel_radius" value="0.05"/>
+  <xacro:property name="wheel_width"  value="0.02"/>
+  <xacro:property name="wheel_y_offset" value="0.16"/>
+
+  <xacro:property name="caster_radius" value="0.025"/>
+  <xacro:property name="caster_mass"   value="0.1"/>
+
+  <!-- ==================== Base Link ==================== -->
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+      </geometry>
+      <origin xyz="0 0 ${chassis_height/2}" rpy="0 0 0"/>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+      </geometry>
+      <origin xyz="0 0 ${chassis_height/2}" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="${chassis_mass}"/>
+      <origin xyz="0 0 ${chassis_height/2}" rpy="0 0 0"/>
+      <inertia ixx="${chassis_mass/12.0*(chassis_width**2 + chassis_height**2)}"
+               ixy="0" ixz="0"
+               iyy="${chassis_mass/12.0*(chassis_length**2 + chassis_height**2)}"
+               iyz="0"
+               izz="${chassis_mass/12.0*(chassis_length**2 + chassis_width**2)}"/>
+    </inertial>
+  </link>
+
+  <!-- ==================== Drive Wheels (macro) ==================== -->
+  <xacro:wheel prefix="left"  y_offset="${wheel_y_offset}"  radius="${wheel_radius}" width="${wheel_width}"/>
+  <xacro:wheel prefix="right" y_offset="${-wheel_y_offset}" radius="${wheel_radius}" width="${wheel_width}"/>
+
+  <!-- ==================== Caster Wheel ==================== -->
+  <link name="caster_wheel">
+    <visual>
+      <geometry>
+        <sphere radius="${caster_radius}"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <collision>
+      <geometry>
+        <sphere radius="${caster_radius}"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="${caster_mass}"/>
+      <inertia ixx="${2.0/5.0*caster_mass*caster_radius**2}"
+               ixy="0" ixz="0"
+               iyy="${2.0/5.0*caster_mass*caster_radius**2}"
+               iyz="0"
+               izz="${2.0/5.0*caster_mass*caster_radius**2}"/>
+    </inertial>
+  </link>
+
+  <joint name="caster_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="caster_wheel"/>
+    <origin xyz="${-chassis_length/2 + caster_radius + 0.01} 0 ${-caster_radius}" rpy="0 0 0"/>
+  </joint>
+
+</robot>

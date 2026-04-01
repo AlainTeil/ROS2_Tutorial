@@ -1,0 +1,9 @@
+# Default parameters for the composed system launch.
+# Loaded by composed_system_launch.py.
+
+/robot_controller:
+  ros__parameters:
+    speed: 2.0
+    turning_radius: 0.8
+    robot_name: "SimpleBot"
+    enable_logging: true
