@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <memory>
+#include <thread>
 
 #include "lesson_13_actions_server/action/navigate_to_point.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -17,7 +18,7 @@ using GoalHandle = rclcpp_action::ServerGoalHandle<NavigateToPoint>;
 
 /// @brief Pure navigation math — testable without ROS2.
 struct NavigationMath {
-  static double distance(double x1, double y1, double x2, double y2) {
+  static constexpr double distance(double x1, double y1, double x2, double y2) {
     double const dx = x2 - x1;
     double const dy = y2 - y1;
     return std::sqrt(dx * dx + dy * dy);
@@ -30,7 +31,8 @@ struct NavigationMath {
     double y;
   };
 
-  static Position interpolate(double sx, double sy, double gx, double gy, double fraction) {
+  static constexpr Position interpolate(double sx, double sy, double gx, double gy,
+                                        double fraction) {
     double const f = std::clamp(fraction, 0.0, 1.0);
     return {sx + (gx - sx) * f, sy + (gy - sy) * f};
   }
@@ -60,6 +62,7 @@ class NavigateActionServer : public rclcpp::Node {
   double speed_;
   double feedback_hz_;
   std::size_t goals_accepted_{0};
+  std::jthread execute_thread_;  ///< Goal execution thread — auto-joins on destruction.
 };
 
 }  // namespace lesson_13

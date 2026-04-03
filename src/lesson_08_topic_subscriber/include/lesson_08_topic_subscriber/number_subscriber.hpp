@@ -5,6 +5,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <deque>
 #include <mutex>
 #include <vector>
 
@@ -26,16 +27,20 @@ class NumberSubscriber : public rclcpp::Node {
   /// @return Number of messages received so far.
   [[nodiscard]] std::size_t get_message_count() const;
 
-  /// @return Copy of all received values.
+  /// @return Copy of values currently in the window.
   [[nodiscard]] std::vector<int32_t> get_values() const;
 
  private:
-  void message_callback(std_msgs::msg::Int32::SharedPtr msg);
+  void message_callback(std_msgs::msg::Int32::ConstSharedPtr msg);
+
+  /// @return Average of values currently in the window (caller must hold mutex_).
+  [[nodiscard]] double compute_average() const;
 
   rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr subscription_;
   mutable std::mutex mutex_;
-  std::vector<int32_t> values_;
+  std::deque<int32_t> values_;  ///< Bounded to at most window_ entries.
   std::size_t window_;
+  std::size_t total_received_{0};  ///< Total messages received (including pruned).
 };
 
 }  // namespace lesson_08

@@ -2,6 +2,7 @@
 /// @brief Reactive obstacle avoidance using LaserScan data.
 #pragma once
 
+#include <chrono>
 #include <vector>
 
 #include "geometry_msgs/msg/twist.hpp"
@@ -40,11 +41,15 @@ class ObstacleAvoidance : public rclcpp::Node {
 
  private:
   void scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg);
+  void watchdog_callback();
 
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_pub_;
+  rclcpp::TimerBase::SharedPtr watchdog_timer_;
   AvoidanceLogic logic_;
   std::size_t scan_count_{0};
+  rclcpp::Time last_scan_time_;                      ///< Time of last scan received.
+  std::chrono::milliseconds watchdog_timeout_{500};  ///< Stop if no scan for this long.
 };
 
 }  // namespace lesson_31

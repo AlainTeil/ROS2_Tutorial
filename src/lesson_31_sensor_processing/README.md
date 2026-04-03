@@ -20,6 +20,7 @@
 | **Gap-finding** | Identify the widest angular gap free of obstacles |
 | **Safety zone** | Minimum clearance distance before the robot stops |
 | **Velocity scaling** | Reduce speed proportionally to nearest obstacle distance |
+| **Watchdog timer** | Publish zero velocity if scan data stops arriving |
 
 ## Algorithm
 
@@ -28,6 +29,8 @@
 3. If front is blocked but a side is clear → turn toward the clear side.
 4. If all sides blocked → stop and rotate in place.
 5. Scale linear speed based on nearest obstacle distance.
+6. A **watchdog timer** monitors scan arrival; if no scan is received
+   within 500 ms, publish zero velocity as a safety stop.
 
 ## Code
 
@@ -55,6 +58,7 @@ ros2 launch lesson_31_sensor_processing autonomous_sim_launch.py
 - Reactive obstacle avoidance uses scan data to choose safe headings.
 - Sector-based gap finding divides the scan into regions and picks the widest.
 - Publishing on `/cmd_vel` closes the sense-plan-act loop.
+- A watchdog timer provides a safety stop when sensor data is lost.
 - Parameter tuning (`safety_distance`, `max_speed`) adapts behavior to different environments.
 
 ---

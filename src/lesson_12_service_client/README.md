@@ -51,6 +51,22 @@ auto future = client_->async_send_request(request, callback);
 rclcpp::spin_until_future_complete(node, future);
 ```
 
+### Error Handling
+
+`future.get()` can throw if the service call fails (e.g., server crashed
+mid-request). Always wrap it in a try-catch:
+
+```cpp
+client_->async_send_request(request, [](SharedFuture future) {
+  try {
+    const auto& response = future.get();
+    // ... use response ...
+  } catch (const std::exception& e) {
+    RCLCPP_ERROR(get_logger(), "Service call failed: %s", e.what());
+  }
+});
+```
+
 ## Code
 
 | File | Purpose |

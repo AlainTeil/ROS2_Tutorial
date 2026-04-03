@@ -134,12 +134,18 @@ sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/c
 sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-18 100
 ```
 
-### Step 7: Initialize rosdep
+### Step 7: Initialize rosdep (optional)
+
+`rosdep` resolves system dependencies when building ROS2 packages from
+source. If you only use pre-built Debian packages, you can skip this step.
 
 ```bash
-sudo rosdep init   # Only needed once
+sudo rosdep init   # Only needed once — skip if already done
 rosdep update
 ```
+
+You will need this if you ever run `rosdep install --from-paths src` to
+install missing dependencies for a source workspace.
 
 ## Code
 

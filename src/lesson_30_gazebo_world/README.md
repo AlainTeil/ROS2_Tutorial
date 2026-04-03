@@ -54,6 +54,7 @@ ros2 launch lesson_30_gazebo_world gazebo_arena_launch.py
 - SDF `<world>` elements define terrain, walls, lighting, and physics.
 - Modular model includes keep worlds maintainable.
 - Launch files parameterise which world file to load.
+- Nodes that consume Gazebo data should set `use_sim_time: true` to stay synchronised.
 - Custom worlds provide controlled environments for testing navigation.
 
 ---

@@ -4,6 +4,7 @@
 #pragma once
 
 #include <string>
+#include <thread>
 
 #include "example_interfaces/srv/trigger.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
@@ -85,6 +86,7 @@ class CapstoneRobot : public rclcpp_lifecycle::LifecycleNode {
   rclcpp::Time start_time_;
   double patrol_speed_{0.5};
   double heartbeat_period_{1.0};
+  std::jthread patrol_thread_;  ///< Patrol execution thread — auto-joins on destruction.
 };
 
 }  // namespace lesson_32

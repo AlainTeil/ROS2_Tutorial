@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 project(lesson_21_tf2_concepts)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)

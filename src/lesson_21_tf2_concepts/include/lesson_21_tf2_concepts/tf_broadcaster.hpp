@@ -26,7 +26,8 @@ class TfBroadcaster : public rclcpp::Node {
 
   /// Build a dynamic odom→base_link transform for a given time step.
   [[nodiscard]] static geometry_msgs::msg::TransformStamped make_dynamic_transform(
-      const rclcpp::Time& stamp, double elapsed_seconds);
+      const rclcpp::Time& stamp, double elapsed_seconds, double radius = 2.0,
+      double angular_speed = 0.5);
 
  private:
   void publish_static_transform();
@@ -36,8 +37,6 @@ class TfBroadcaster : public rclcpp::Node {
   std::unique_ptr<tf2_ros::StaticTransformBroadcaster> static_broadcaster_;
   rclcpp::TimerBase::SharedPtr timer_;
   std::size_t tick_{0};
-  double radius_{2.0};
-  double angular_speed_{0.5};  // rad/s
 };
 
 }  // namespace lesson_21

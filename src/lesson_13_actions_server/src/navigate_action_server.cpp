@@ -48,8 +48,13 @@ rclcpp_action::CancelResponse NavigateActionServer::handle_cancel(
 
 void NavigateActionServer::handle_accepted(std::shared_ptr<GoalHandle> goal_handle) {
   ++goals_accepted_;
-  // Execute in a separate thread to avoid blocking the executor
-  std::thread([this, goal_handle]() { execute(goal_handle); }).detach();
+  // If a previous goal thread is still running, wait for it to finish.
+  if (execute_thread_.joinable()) {
+    execute_thread_.join();
+  }
+  // Execute in a separate thread to avoid blocking the executor.
+  // Stored as a member so it auto-joins on destruction — prevents use-after-free.
+  execute_thread_ = std::jthread([this, goal_handle]() { execute(goal_handle); });
 }
 
 void NavigateActionServer::execute(std::shared_ptr<GoalHandle> goal_handle) {

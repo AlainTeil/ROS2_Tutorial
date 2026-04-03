@@ -59,7 +59,7 @@ VelocityCommand AvoidanceLogic::decide(double left_min, double front_min, double
 // --- ObstacleAvoidance ---
 
 ObstacleAvoidance::ObstacleAvoidance(const rclcpp::NodeOptions& options)
-    : Node("obstacle_avoidance", options) {
+    : Node("obstacle_avoidance", options), last_scan_time_(now()) {
   declare_parameter("safety_distance", logic_.safety_distance);
   declare_parameter("slow_distance", logic_.slow_distance);
   declare_parameter("max_linear", logic_.max_linear);
@@ -75,12 +75,16 @@ ObstacleAvoidance::ObstacleAvoidance(const rclcpp::NodeOptions& options)
       "scan", 10,
       [this](sensor_msgs::msg::LaserScan::ConstSharedPtr msg) { scan_callback(std::move(msg)); });
 
+  // Watchdog: publish zero velocity if scan data stops arriving
+  watchdog_timer_ = create_wall_timer(watchdog_timeout_, [this]() { watchdog_callback(); });
+
   RCLCPP_INFO(get_logger(), "ObstacleAvoidance ready — safety=%.2f m, slow=%.2f m",
               logic_.safety_distance, logic_.slow_distance);
 }
 
 void ObstacleAvoidance::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg) {
   ++scan_count_;
+  last_scan_time_ = now();
   const auto k_n = msg->ranges.size();
   if (k_n == 0) {
     return;
@@ -101,6 +105,18 @@ void ObstacleAvoidance::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPt
   twist.linear.x = cmd.linear_x;
   twist.angular.z = cmd.angular_z;
   cmd_pub_->publish(twist);
+}
+
+void ObstacleAvoidance::watchdog_callback() {
+  auto const elapsed = now() - last_scan_time_;
+  if (elapsed > rclcpp::Duration(watchdog_timeout_)) {
+    // No scan data received recently — send emergency stop
+    geometry_msgs::msg::Twist stop;
+    cmd_pub_->publish(stop);
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
+                         "Watchdog: no scan data for %.1f s — sending zero velocity",
+                         elapsed.seconds());
+  }
 }
 
 }  // namespace lesson_31

@@ -15,14 +15,14 @@ namespace lesson_11 {
 /// @brief Pure computation functions (testable without ROS2 node).
 struct TrajectoryMath {
   /// Compute Euclidean distance between two 2D points.
-  static double distance(double x1, double y1, double x2, double y2) {
+  static constexpr double distance(double x1, double y1, double x2, double y2) {
     double const dx = x2 - x1;
     double const dy = y2 - y1;
     return std::sqrt(dx * dx + dy * dy);
   }
 
   /// Compute estimated travel time at constant velocity.
-  static double travel_time(double dist, double velocity) {
+  static constexpr double travel_time(double dist, double velocity) {
     if (velocity <= 0.0) {
       return -1.0;  // infeasible
     }

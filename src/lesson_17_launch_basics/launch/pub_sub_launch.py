@@ -15,7 +15,6 @@ def generate_launch_description():
         package='lesson_07_topic_publisher',
         executable='number_publisher',
         name='number_publisher',
-        parameters=[{'topic': LaunchConfiguration('topic')}],
         remappings=[('counter', LaunchConfiguration('topic'))],
         output='screen',
     )

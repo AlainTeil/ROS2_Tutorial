@@ -3,7 +3,6 @@
 
 #include <cmath>
 #include <format>
-#include <thread>
 
 namespace lesson_32 {
 
@@ -109,6 +108,9 @@ CapstoneRobot::CallbackReturn CapstoneRobot::on_deactivate(
 }
 
 CapstoneRobot::CallbackReturn CapstoneRobot::on_cleanup(const rclcpp_lifecycle::State& /*state*/) {
+  if (patrol_thread_.joinable()) {
+    patrol_thread_.join();
+  }
   heartbeat_pub_.reset();
   pose_service_.reset();
   patrol_action_.reset();
@@ -169,7 +171,11 @@ rclcpp_action::CancelResponse CapstoneRobot::handle_cancel(
 }
 
 void CapstoneRobot::handle_accepted(const std::shared_ptr<GoalHandle> goal_handle) {
-  std::thread([this, goal_handle]() { execute_patrol(goal_handle); }).detach();
+  // If a previous patrol thread is still running, wait for it to finish.
+  if (patrol_thread_.joinable()) {
+    patrol_thread_.join();
+  }
+  patrol_thread_ = std::jthread([this, goal_handle]() { execute_patrol(goal_handle); });
 }
 
 void CapstoneRobot::execute_patrol(const std::shared_ptr<GoalHandle> goal_handle) {

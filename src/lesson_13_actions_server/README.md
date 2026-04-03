@@ -50,6 +50,17 @@ float64 current_y
 2. **Cancel callback** — handle cancellation requests
 3. **Execute function** — perform the work, publish feedback, set result
 
+### Thread Management with `std::jthread`
+
+The execute function runs on a dedicated `std::jthread` (C++20). Unlike
+raw `std::thread` + `detach()`, `std::jthread` automatically joins on
+destruction, preventing use-after-free bugs if the node is destroyed
+while a goal is still executing.
+
+```cpp
+std::jthread execute_thread_;  // auto-joins on destruction
+```
+
 ## Code
 
 | File | Purpose |
@@ -87,7 +98,7 @@ ros2 action send_goal /navigate_to_point \
 - Actions are for long-running tasks with feedback and cancellation.
 - `.action` files have three sections: Goal, Result, Feedback.
 - `rclcpp_action::create_server()` takes goal, cancel, and accepted callbacks.
-- The execute function runs in a separate thread and publishes feedback.
+- The execute function runs on a `std::jthread` (C++20), which auto-joins on destruction.
 - Goals can be accepted, rejected, or canceled mid-execution.
 
 ---

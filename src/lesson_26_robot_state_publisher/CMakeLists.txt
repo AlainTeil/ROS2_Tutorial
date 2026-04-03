@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 project(lesson_26_robot_state_publisher)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)

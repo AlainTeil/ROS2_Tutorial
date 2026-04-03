@@ -31,6 +31,7 @@
 | **Patrol action** | Custom `NavigateToPoint.action` from Lesson 13 | Drives a square patrol |
 | **TF2** | Broadcasts `odom → base_link` | Updated every timer tick |
 | **Parameters** | `patrol_speed`, `heartbeat_period` | Declared with descriptors |
+| **Thread safety** | `std::jthread` for patrol execution | Auto-joins on destruction |
 
 ### Architecture
 

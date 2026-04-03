@@ -21,6 +21,7 @@
 | **ros_gz_bridge** | Bidirectional bridge between Gazebo Transport and ROS2 |
 | **SDF** | Simulation Description Format — Gazebo's native model/world format |
 | **spawn_entity** | Service to spawn URDF/SDF models into a running Gazebo |
+| **`use_sim_time`** | ROS parameter that makes nodes use Gazebo's `/clock` instead of wall time |
 
 ## Key Commands
 
@@ -58,6 +59,7 @@ ros2 launch lesson_27_gazebo_intro gazebo_empty_world_launch.py
 - `ros_gz_sim` launches Gazebo and spawns models from launch files.
 - `ros_gz_bridge` maps Gazebo topics to ROS2 topics and vice versa.
 - SDF worlds define the environment geometry, physics, and plugins.
+- Set `use_sim_time: true` on nodes that need timestamps synchronised with Gazebo's clock.
 
 ---
 

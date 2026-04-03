@@ -36,19 +36,17 @@ geometry_msgs::msg::TransformStamped TfBroadcaster::make_static_transform(
 }
 
 geometry_msgs::msg::TransformStamped TfBroadcaster::make_dynamic_transform(
-    const rclcpp::Time& stamp, double elapsed_seconds) {
+    const rclcpp::Time& stamp, double elapsed_seconds, double radius, double angular_speed) {
   geometry_msgs::msg::TransformStamped t;
   t.header.stamp = stamp;
   t.header.frame_id = "odom";
   t.child_frame_id = "base_link";
 
   // Circular motion: x = r*cos(θ), y = r*sin(θ), heading = θ + π/2
-  constexpr double kRadius = 2.0;
-  constexpr double kAngularSpeed = 0.5;  // rad/s
-  const double k_theta = kAngularSpeed * elapsed_seconds;
+  const double k_theta = angular_speed * elapsed_seconds;
 
-  t.transform.translation.x = kRadius * std::cos(k_theta);
-  t.transform.translation.y = kRadius * std::sin(k_theta);
+  t.transform.translation.x = radius * std::cos(k_theta);
+  t.transform.translation.y = radius * std::sin(k_theta);
   t.transform.translation.z = 0.0;
 
   tf2::Quaternion q;

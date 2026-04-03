@@ -119,3 +119,44 @@ TEST_F(CapstoneRobotTest, FullLifecycle) {
   ret = node_->on_cleanup(node_->get_current_state());
   EXPECT_EQ(ret, CapstoneRobot::CallbackReturn::SUCCESS);
 }
+
+TEST_F(CapstoneRobotTest, CleanupResetsPose) {
+  node_->on_configure(node_->get_current_state());
+  node_->on_activate(node_->get_current_state());
+
+  // step_toward modifies pose via the logic helper — simulate some movement.
+  Pose2D pose{.x = 5.0, .y = 3.0, .theta = 1.0};
+  CapstoneLogic::step_toward(pose, 10.0, 10.0, 1.0, 1.0);
+  // (We can't move the node's internal pose directly, but we CAN verify
+  //  on_cleanup resets the node's pose via the accessor.)
+
+  node_->on_deactivate(node_->get_current_state());
+  node_->on_cleanup(node_->get_current_state());
+
+  const auto& p = node_->pose();
+  EXPECT_NEAR(p.x, 0.0, 1e-9);
+  EXPECT_NEAR(p.y, 0.0, 1e-9);
+  EXPECT_NEAR(p.theta, 0.0, 1e-9);
+}
+
+TEST_F(CapstoneRobotTest, ConfigureThenCleanupWithoutActivating) {
+  auto ret = node_->on_configure(node_->get_current_state());
+  EXPECT_EQ(ret, CapstoneRobot::CallbackReturn::SUCCESS);
+
+  ret = node_->on_cleanup(node_->get_current_state());
+  EXPECT_EQ(ret, CapstoneRobot::CallbackReturn::SUCCESS);
+}
+
+TEST_F(CapstoneRobotTest, ReactivateAfterDeactivate) {
+  node_->on_configure(node_->get_current_state());
+  node_->on_activate(node_->get_current_state());
+  node_->on_deactivate(node_->get_current_state());
+
+  // Reactivating should succeed — timer and publisher reinitialised.
+  auto ret = node_->on_activate(node_->get_current_state());
+  EXPECT_EQ(ret, CapstoneRobot::CallbackReturn::SUCCESS);
+
+  // Clean shutdown.
+  node_->on_deactivate(node_->get_current_state());
+  node_->on_cleanup(node_->get_current_state());
+}

@@ -51,6 +51,7 @@ ros2 topic echo /imu
 - `diff_drive` maps `cmd_vel` Twist to wheel joint velocities.
 - `gpu_lidar` and `imu_sensor` generate realistic sensor data.
 - `ros_gz_bridge` transports sensor messages to ROS2 for downstream processing.
+- Set `use_sim_time: true` on all ROS2 nodes so TF timestamps match Gazebo's clock.
 
 ---
 

@@ -79,9 +79,8 @@ TEST_F(NumberSubscriberTest, AverageIsCorrect) {
     }
   }
 
-  if (sub_node->get_message_count() == 3U) {
-    EXPECT_DOUBLE_EQ(sub_node->get_average(), 20.0);
-  }
+  ASSERT_GE(sub_node->get_message_count(), 3U) << "Expected at least 3 messages";
+  EXPECT_DOUBLE_EQ(sub_node->get_average(), 20.0);
 }
 
 TEST_F(NumberSubscriberTest, WindowLimitsAverageRange) {
@@ -104,8 +103,7 @@ TEST_F(NumberSubscriberTest, WindowLimitsAverageRange) {
     }
   }
 
-  if (sub_node->get_message_count() == 3U) {
-    // Window=2: average of last two (200, 300) = 250
-    EXPECT_DOUBLE_EQ(sub_node->get_average(), 250.0);
-  }
+  ASSERT_GE(sub_node->get_message_count(), 3U) << "Expected at least 3 messages";
+  // Window=2: average of last two (200, 300) = 250
+  EXPECT_DOUBLE_EQ(sub_node->get_average(), 250.0);
 }

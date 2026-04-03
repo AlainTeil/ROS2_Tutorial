@@ -7,7 +7,7 @@ After completing this lesson you will be able to:
 1. Create a **subscriber** with `create_subscription<>()`
 2. Write **callback functions** using lambdas and member functions
 3. Process incoming messages and compute a **running average**
-4. Use **C++20 ranges** for data processing
+4. Use a bounded `std::deque` as a sliding window
 5. Understand **QoS matching** between publisher and subscriber
 
 ## Prerequisites
@@ -24,8 +24,8 @@ each incoming message:
 ```cpp
 subscription_ = create_subscription<std_msgs::msg::Int32>(
     "counter", 10,
-    [this](const std_msgs::msg::Int32::SharedPtr msg) {
-      message_callback(msg);
+    [this](std_msgs::msg::Int32::ConstSharedPtr msg) {
+      message_callback(std::move(msg));
     });
 ```
 
@@ -44,23 +44,35 @@ ROS2 supports several callback signatures:
 2. **Member function** — `std::bind(&Class::method, this, _1)`
 3. **Free function** — `void callback(const Msg::SharedPtr msg)`
 
+Prefer `ConstSharedPtr` over `SharedPtr` in callbacks that only read the
+message — this avoids unnecessary reference-count overhead and clearly
+signals read-only intent.
+
 This lesson uses a lambda that delegates to a member function for
 testability.
 
-### Running Average with C++20 `std::span`
+### Running Average with Bounded `std::deque`
 
 ```cpp
+#include <deque>
 #include <numeric>
-#include <span>
 
-auto start = values.size() > window ? values.size() - window : 0U;
-auto window_view = std::span(values).subspan(start);
-double avg = std::accumulate(window_view.begin(), window_view.end(), 0.0)
-             / static_cast<double>(window_view.size());
+std::deque<int32_t> values_;  // bounded to window_ entries
+
+// In the callback — keep only the last window_ values:
+values_.push_back(msg->data);
+while (values_.size() > window_) {
+  values_.pop_front();
+}
+
+// Compute the average over the entire deque (which IS the window):
+double avg = std::accumulate(values_.begin(), values_.end(), 0.0)
+             / static_cast<double>(values_.size());
 ```
 
-We use `std::span::subspan` (C++20) to create a lightweight view over
-the last *N* values for windowed averages.
+Using a bounded `std::deque` keeps only the last *N* values, preventing
+unbounded memory growth while providing efficient front removal via
+`pop_front()`.
 
 ## Code
 
@@ -97,7 +109,7 @@ ros2 run lesson_08_topic_subscriber number_subscriber
 - `create_subscription<MsgType>(topic, qos, callback)` subscribes to a topic.
 - Callbacks are invoked on the executor thread during `spin()`.
 - Publisher and subscriber QoS must be **compatible** (e.g., both reliable).
-- C++20 ranges simplify data processing pipelines.
+- A bounded `std::deque` is well-suited for sliding-window calculations.
 
 ---
 

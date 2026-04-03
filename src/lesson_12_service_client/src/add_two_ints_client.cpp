@@ -29,10 +29,15 @@ void AddTwoIntsClient::send_request(int64_t a, int64_t b, ResultCallback callbac
 
   client_->async_send_request(request, [this, a, b, cb = std::move(callback)](
                                            rclcpp::Client<AddTwoInts>::SharedFuture future) {
-    const auto& response = future.get();
-    RCLCPP_INFO(get_logger(), "Result: %ld + %ld = %ld", static_cast<long>(a), static_cast<long>(b),
-                static_cast<long>(response->sum));
-    cb(CallResult{.sum = response->sum, .error = {}});
+    try {
+      const auto& response = future.get();
+      RCLCPP_INFO(get_logger(), "Result: %ld + %ld = %ld", static_cast<long>(a),
+                  static_cast<long>(b), static_cast<long>(response->sum));
+      cb(CallResult{.sum = response->sum, .error = {}});
+    } catch (const std::exception& e) {
+      RCLCPP_ERROR(get_logger(), "Service call failed: %s", e.what());
+      cb(CallResult{.sum = std::nullopt, .error = std::string("Service call failed: ") + e.what()});
+    }
   });
 }
 
