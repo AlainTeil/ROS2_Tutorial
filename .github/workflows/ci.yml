@@ -271,8 +271,9 @@ jobs:
       - name: Build with coverage flags and run tests
         shell: bash
         run: |
-          set -euo pipefail
+          set -eo pipefail
           source /opt/ros/${ROS_DISTRO}/setup.bash
+          set -u
           ./scripts/coverage.sh
 
       - name: Upload coverage HTML report
