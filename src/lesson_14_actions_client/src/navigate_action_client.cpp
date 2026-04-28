@@ -48,7 +48,7 @@ void NavigateActionClient::send_goal(double target_x, double target_y, FeedbackC
       return;
     }
     {
-      std::lock_guard<std::mutex> lk(goals_mutex_);
+      const std::lock_guard<std::mutex> lk(goals_mutex_);
       active_goals_.emplace(goal_handle->get_goal_id(), goal_handle);
     }
     RCLCPP_INFO(get_logger(), "Goal accepted");
@@ -97,7 +97,7 @@ void NavigateActionClient::send_goal(double target_x, double target_y, FeedbackC
         }
 
         {
-          std::lock_guard<std::mutex> lk(goals_mutex_);
+          const std::lock_guard<std::mutex> lk(goals_mutex_);
           active_goals_.erase(wrapped_result.goal_id);
         }
         if (res_cb) {
@@ -111,7 +111,7 @@ void NavigateActionClient::send_goal(double target_x, double target_y, FeedbackC
 void NavigateActionClient::cancel_goal() {
   std::vector<GoalHandle::SharedPtr> handles;
   {
-    std::lock_guard<std::mutex> lk(goals_mutex_);
+    const std::lock_guard<std::mutex> lk(goals_mutex_);
     if (active_goals_.empty()) {
       RCLCPP_WARN(get_logger(), "No active goal to cancel");
       return;
@@ -130,7 +130,7 @@ void NavigateActionClient::cancel_goal() {
 void NavigateActionClient::cancel_goal(const rclcpp_action::GoalUUID& uuid) {
   GoalHandle::SharedPtr handle;
   {
-    std::lock_guard<std::mutex> lk(goals_mutex_);
+    const std::lock_guard<std::mutex> lk(goals_mutex_);
     auto it = active_goals_.find(uuid);
     if (it == active_goals_.end()) {
       RCLCPP_WARN(get_logger(), "Cancel requested for unknown goal");
@@ -147,7 +147,7 @@ bool NavigateActionClient::is_server_available() const {
 }
 
 std::size_t NavigateActionClient::active_goal_count() const {
-  std::lock_guard<std::mutex> lk(goals_mutex_);
+  const std::lock_guard<std::mutex> lk(goals_mutex_);
   return active_goals_.size();
 }
 

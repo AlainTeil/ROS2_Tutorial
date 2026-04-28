@@ -19,7 +19,7 @@ NavigateActionServer::NavigateActionServer(double speed, double feedback_hz)
   // freeing the executor thread to keep servicing other callbacks.
   callback_group_ = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
 
-  rcl_action_server_options_t server_options = rcl_action_server_get_default_options();
+  const rcl_action_server_options_t server_options = rcl_action_server_get_default_options();
 
   action_server_ = rclcpp_action::create_server<NavigateToPoint>(
       this, "navigate_to_point",

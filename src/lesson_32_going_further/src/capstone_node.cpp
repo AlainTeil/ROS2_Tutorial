@@ -119,7 +119,7 @@ CapstoneRobot::CallbackReturn CapstoneRobot::on_cleanup(const rclcpp_lifecycle::
   tf_broadcaster_.reset();
   timer_.reset();
   {
-    std::lock_guard<std::mutex> lk(pose_mutex_);
+    const std::lock_guard<std::mutex> lk(pose_mutex_);
     pose_ = Pose2D{};
   }
   RCLCPP_INFO(get_logger(), "Cleaned up");
@@ -137,7 +137,7 @@ void CapstoneRobot::timer_callback() {
 
   Pose2D snapshot;
   {
-    std::lock_guard<std::mutex> lk(pose_mutex_);
+    const std::lock_guard<std::mutex> lk(pose_mutex_);
     snapshot = pose_;
   }
 
@@ -161,7 +161,7 @@ void CapstoneRobot::timer_callback() {
 }
 
 Pose2D CapstoneRobot::pose() const {
-  std::lock_guard<std::mutex> lk(pose_mutex_);
+  const std::lock_guard<std::mutex> lk(pose_mutex_);
   return pose_;
 }
 
@@ -175,7 +175,7 @@ void CapstoneRobot::handle_get_pose(const std::shared_ptr<Trigger::Request> /*re
                                     std::shared_ptr<Trigger::Response> response) {
   Pose2D snapshot;
   {
-    std::lock_guard<std::mutex> lk(pose_mutex_);
+    const std::lock_guard<std::mutex> lk(pose_mutex_);
     snapshot = pose_;
   }
   response->success = true;
@@ -231,7 +231,7 @@ void CapstoneRobot::execute_patrol(const std::shared_ptr<GoalHandle> goal_handle
     double remaining = 0.0;
     Pose2D snapshot;
     {
-      std::lock_guard<std::mutex> lk(pose_mutex_);
+      const std::lock_guard<std::mutex> lk(pose_mutex_);
       remaining =
           CapstoneLogic::step_toward(pose_, k_goal->target_x, k_goal->target_y, patrol_speed_, kDt);
       snapshot = pose_;
