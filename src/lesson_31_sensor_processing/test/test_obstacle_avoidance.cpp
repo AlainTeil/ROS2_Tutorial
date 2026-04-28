@@ -71,3 +71,27 @@ TEST_F(AvoidanceLogicTest, FrontSlowZoneReducesSpeed) {
   EXPECT_GT(cmd.linear_x, 0.0);
   EXPECT_LT(cmd.linear_x, 0.5);  // Must be less than max
 }
+
+// --- fail-safe behaviour ---
+
+TEST_F(AvoidanceLogicTest, AllSectorsBlindStopsRobot) {
+  // Every sector reports kNoReturn -> the scan is unusable, refuse to move.
+  auto cmd = logic_.decide(AvoidanceLogic::kNoReturn, AvoidanceLogic::kNoReturn,
+                           AvoidanceLogic::kNoReturn);
+  EXPECT_NEAR(cmd.linear_x, 0.0, 1e-9);
+  EXPECT_NEAR(cmd.angular_z, 0.0, 1e-9);
+}
+
+TEST_F(AvoidanceLogicTest, BlindFrontDoesNotChargeAhead) {
+  // Front is blind (no return), left and right are clear. Earlier code
+  // treated max() as "very far" and drove forward; the fail-safe must
+  // refuse to drive into the blind sector.
+  auto cmd = logic_.decide(5.0, AvoidanceLogic::kNoReturn, 5.0);
+  EXPECT_NEAR(cmd.linear_x, 0.0, 1e-9);
+}
+
+TEST_F(AvoidanceLogicTest, SectorMinNoReturnSentinelOnAllInvalid) {
+  std::vector<float> const ranges = {0.01F, 100.0F};
+  double const m = AvoidanceLogic::sector_min(ranges, 0, 2, 0.1F, 10.0F);
+  EXPECT_EQ(m, AvoidanceLogic::kNoReturn);
+}

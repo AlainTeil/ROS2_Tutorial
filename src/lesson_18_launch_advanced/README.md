@@ -113,6 +113,26 @@ ros2 launch lesson_18_launch_advanced composed_system_launch.py robot_ns:=my_rob
 3. Use `IncludeLaunchDescription` to nest the basic launch file from
    Lesson 17 inside this composed launch.
 
+## Testing
+
+This package ships a `launch_testing` integration test:
+
+- `test/test_composed_system_launch.py` — includes
+  `composed_system_launch.py` with `robot_ns:=test_bot` and
+  `enable_controller:=false`, asserts that an `Int32` message is
+  published on `/test_bot/counter` within 10 s, and verifies clean
+  process exit codes after shutdown.
+
+Run it with:
+
+```bash
+colcon test --packages-select lesson_18_launch_advanced
+colcon test-result --verbose
+```
+
+See [Lesson 17](../lesson_17_launch_basics/README.md) for the full
+`launch_testing` pattern.
+
 ## Key Takeaways
 
 - `IncludeLaunchDescription` composes launch files hierarchically.

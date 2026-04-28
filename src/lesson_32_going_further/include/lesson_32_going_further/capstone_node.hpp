@@ -3,6 +3,7 @@
 ///        actions, and TF2 broadcasting.
 #pragma once
 
+#include <mutex>
 #include <string>
 #include <thread>
 
@@ -56,8 +57,10 @@ class CapstoneRobot : public rclcpp_lifecycle::LifecycleNode {
   CallbackReturn on_deactivate(const rclcpp_lifecycle::State& state) override;
   CallbackReturn on_cleanup(const rclcpp_lifecycle::State& state) override;
 
-  /// Accessors for testing.
-  const Pose2D& pose() const { return pose_; }
+  /// Snapshot of the current pose. Returned by value because the underlying
+  /// pose is mutated from the patrol worker thread — callers must not hold
+  /// a reference across thread boundaries.
+  Pose2D pose() const;
   double uptime_s() const;
 
  private:
@@ -82,6 +85,9 @@ class CapstoneRobot : public rclcpp_lifecycle::LifecycleNode {
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   rclcpp::TimerBase::SharedPtr timer_;
 
+  // pose_ is read from the executor thread (timer + service callbacks) and
+  // written from the patrol jthread — every access must hold pose_mutex_.
+  mutable std::mutex pose_mutex_;
   Pose2D pose_;
   rclcpp::Time start_time_;
   double patrol_speed_{0.5};

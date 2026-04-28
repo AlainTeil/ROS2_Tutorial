@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(lesson_19_lifecycle_nodes)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(ament_cmake REQUIRED)
@@ -27,7 +29,6 @@ install(DIRECTORY include/ DESTINATION include)
 
 # --- Tests ---
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
   find_package(ament_cmake_gtest REQUIRED)
   ament_add_gtest(test_lifecycle_sensor test/test_lifecycle_sensor.cpp)
   target_link_libraries(test_lifecycle_sensor lifecycle_sensor_lib)

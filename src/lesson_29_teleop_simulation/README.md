@@ -44,6 +44,20 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard
 2. Add acceleration ramp-up to prevent wheel slip.
 3. Display a histogram of scan ranges using a MarkerArray.
 
+## Testing
+
+GTest covers the `TeleopNode` and `SensorDisplay` libraries directly.
+A launch description **smoke test** rounds out the package:
+
+- `test/test_teleop_sim_launch_smoke.py` — loads the teleop+sim launch
+  file via `runpy` and verifies its entity list. The launch is not
+  executed because it depends on Gazebo and a display.
+
+```bash
+colcon test --packages-select lesson_29_teleop_simulation
+colcon test-result --verbose
+```
+
 ## Key Takeaways
 
 - Teleop nodes convert user input to `Twist` velocity commands.

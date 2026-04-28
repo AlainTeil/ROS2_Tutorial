@@ -77,6 +77,41 @@ your team prefers.
 |------|---------|
 | `launch/pub_sub_launch.py` | Python launch — starts publisher + subscriber |
 | `launch/pub_sub_launch.xml` | XML launch — equivalent configuration |
+| `test/test_pub_sub_launch.py` | `launch_testing` integration test |
+
+## Testing the Launch File
+
+Launch files are code: untested launch code rots the moment a node
+renames a topic. ROS2 ships **`launch_testing`**, a pytest-based
+framework that brings the whole launch up in a sandboxed process tree,
+lets you assert against live ROS traffic, and verifies clean shutdown.
+
+The minimal pattern is:
+
+```python
+@pytest.mark.launch_test
+def generate_test_description():
+    return launch.LaunchDescription([
+        Node(...),
+        launch_testing.actions.ReadyToTest(),
+    ])
+
+class TestActive(unittest.TestCase):
+    def test_topic_traffic(self, proc_output):
+        # spin a temporary rclpy node, subscribe, assert.
+        ...
+
+@launch_testing.post_shutdown_test()
+class TestShutdown(unittest.TestCase):
+    def test_clean_exit(self, proc_info):
+        launch_testing.asserts.assertExitCodes(proc_info)
+```
+
+The full example lives at
+[`test/test_pub_sub_launch.py`](test/test_pub_sub_launch.py); it is
+registered with `add_launch_test()` in `CMakeLists.txt`, so
+`colcon test --packages-select lesson_17_launch_basics` runs it on
+every build.
 
 ## Build & Run
 

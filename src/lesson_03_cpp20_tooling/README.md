@@ -128,8 +128,10 @@ doxygen Doxyfile
 This header declares functions demonstrating each C++20 feature:
 
 - `format_sensor_reading()` — `std::format` for type-safe string formatting.
-- `find_max_reading()` — `std::optional` for handling empty collections.
-- `filter_valid_readings()` — C++20 ranges to filter and transform data.
+- `find_max_reading()` — `std::optional` return paired with a
+  `std::span<const double>` parameter (zero-copy, container-agnostic).
+- `filter_valid_readings()` — C++20 `std::ranges` + `std::views::filter`
+  pipeline over a `std::span<const double>` input.
 - `Measurement` struct — designated initializers and three-way comparison.
 - `clamp_to_range()` — a concept-constrained generic function.
 - `analyze_readings()` — `std::span` for non-owning array views.
@@ -171,6 +173,23 @@ colcon test-result --verbose
 - Doxygen generates browsable HTML docs from `///` comments.
 - C++20 features like `std::format`, concepts, ranges, and `std::optional` will
   be used naturally throughout this tutorial.
+
+### Where these C++20 features show up later
+
+| Feature | Reused in |
+|---------|-----------|
+| `std::format` | L05, L07, L08 logging strings |
+| `std::optional` | L11/L12 service result handling, L29 nearest-obstacle return |
+| `std::span<const T>` | L23 `MarkerFactory::build_waypoint_markers`, L29 `ScanProcessor::find_nearest`, L31 `AvoidanceLogic::sector_min` |
+| `std::ranges` / `std::views::filter` | L03 `filter_valid_readings`, L31 `AvoidanceLogic::sector_min` |
+| `concept` / `requires` | L22 `TransformMath` generic helpers |
+| `[[nodiscard]]` | All accessor methods across L08, L11, L13, L31, L32 |
+| `std::jthread` | L13 action server `execute_thread_`, L32 capstone patrol worker (auto-join + cooperative cancel via `stop_token`) |
+| Atomic counters | L11, L13, L14, L31 metrics/state |
+
+If you finish this lesson and feel the language tour was light, that is by
+design — the curriculum spreads the C++20 surface across the whole 32
+lessons rather than dumping it here.
 
 ---
 

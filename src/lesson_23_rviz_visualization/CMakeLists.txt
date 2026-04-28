@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(lesson_23_rviz_visualization)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(ament_cmake REQUIRED)
@@ -27,10 +29,14 @@ install(DIRECTORY rviz/ DESTINATION share/${PROJECT_NAME}/rviz)
 
 # --- Tests ---
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
   find_package(ament_cmake_gtest REQUIRED)
+  find_package(ament_cmake_pytest REQUIRED)
   ament_add_gtest(test_marker_publisher test/test_marker_publisher.cpp)
   target_link_libraries(test_marker_publisher marker_publisher_lib)
+
+  # Description-only smoke test (rviz2 needs a display server, skipped on CI)
+  ament_add_pytest_test(test_rviz_demo_launch_smoke
+    test/test_rviz_demo_launch_smoke.py)
 endif()
 
 ament_package()

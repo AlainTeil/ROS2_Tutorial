@@ -4,6 +4,8 @@
 #include <cmath>
 #include <format>
 
+#include "lifecycle_msgs/msg/state.hpp"
+
 namespace lesson_32 {
 
 // ---------------------------------------------------------------------------
@@ -116,7 +118,10 @@ CapstoneRobot::CallbackReturn CapstoneRobot::on_cleanup(const rclcpp_lifecycle::
   patrol_action_.reset();
   tf_broadcaster_.reset();
   timer_.reset();
-  pose_ = Pose2D{};
+  {
+    std::lock_guard<std::mutex> lk(pose_mutex_);
+    pose_ = Pose2D{};
+  }
   RCLCPP_INFO(get_logger(), "Cleaned up");
   return CallbackReturn::SUCCESS;
 }
@@ -124,6 +129,18 @@ CapstoneRobot::CallbackReturn CapstoneRobot::on_cleanup(const rclcpp_lifecycle::
 // --- Timer callback --------------------------------------------------------
 
 void CapstoneRobot::timer_callback() {
+  // Defensive: if a deactivation/cleanup races with a fired timer, the
+  // publisher or broadcaster may already be reset.
+  if (!heartbeat_pub_ || !heartbeat_pub_->is_activated() || !tf_broadcaster_) {
+    return;
+  }
+
+  Pose2D snapshot;
+  {
+    std::lock_guard<std::mutex> lk(pose_mutex_);
+    snapshot = pose_;
+  }
+
   // Publish heartbeat.
   auto msg = std_msgs::msg::String();
   msg.data = CapstoneLogic::make_heartbeat("active", uptime_s());
@@ -134,13 +151,18 @@ void CapstoneRobot::timer_callback() {
   t.header.stamp = now();
   t.header.frame_id = "odom";
   t.child_frame_id = "base_link";
-  t.transform.translation.x = pose_.x;
-  t.transform.translation.y = pose_.y;
+  t.transform.translation.x = snapshot.x;
+  t.transform.translation.y = snapshot.y;
   t.transform.translation.z = 0.0;
   // Quaternion from yaw.
-  t.transform.rotation.z = std::sin(pose_.theta / 2.0);
-  t.transform.rotation.w = std::cos(pose_.theta / 2.0);
+  t.transform.rotation.z = std::sin(snapshot.theta / 2.0);
+  t.transform.rotation.w = std::cos(snapshot.theta / 2.0);
   tf_broadcaster_->sendTransform(t);
+}
+
+Pose2D CapstoneRobot::pose() const {
+  std::lock_guard<std::mutex> lk(pose_mutex_);
+  return pose_;
 }
 
 double CapstoneRobot::uptime_s() const {
@@ -151,8 +173,13 @@ double CapstoneRobot::uptime_s() const {
 
 void CapstoneRobot::handle_get_pose(const std::shared_ptr<Trigger::Request> /*request*/,
                                     std::shared_ptr<Trigger::Response> response) {
+  Pose2D snapshot;
+  {
+    std::lock_guard<std::mutex> lk(pose_mutex_);
+    snapshot = pose_;
+  }
   response->success = true;
-  response->message = CapstoneLogic::format_pose(pose_);
+  response->message = CapstoneLogic::format_pose(snapshot);
 }
 
 // --- Action callbacks ------------------------------------------------------
@@ -160,6 +187,13 @@ void CapstoneRobot::handle_get_pose(const std::shared_ptr<Trigger::Request> /*re
 rclcpp_action::GoalResponse CapstoneRobot::handle_goal(
     const rclcpp_action::GoalUUID& /*uuid*/,
     std::shared_ptr<const NavigateToPoint::Goal> /*goal*/) {
+  // Reject goals while the node is not active — acting on a goal in any
+  // other lifecycle state would publish on a deactivated publisher and
+  // mutate pose_ behind the back of an uninitialised TF broadcaster.
+  if (get_current_state().id() != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE) {
+    RCLCPP_WARN(get_logger(), "Rejecting patrol goal \u2014 node is not ACTIVE");
+    return rclcpp_action::GoalResponse::REJECT;
+  }
   RCLCPP_INFO(get_logger(), "Patrol goal received");
   return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
@@ -194,12 +228,18 @@ void CapstoneRobot::execute_patrol(const std::shared_ptr<GoalHandle> goal_handle
       return;
     }
 
-    double const remaining =
-        CapstoneLogic::step_toward(pose_, k_goal->target_x, k_goal->target_y, patrol_speed_, kDt);
+    double remaining = 0.0;
+    Pose2D snapshot;
+    {
+      std::lock_guard<std::mutex> lk(pose_mutex_);
+      remaining =
+          CapstoneLogic::step_toward(pose_, k_goal->target_x, k_goal->target_y, patrol_speed_, kDt);
+      snapshot = pose_;
+    }
 
     feedback->distance_remaining = remaining;
-    feedback->current_x = pose_.x;
-    feedback->current_y = pose_.y;
+    feedback->current_x = snapshot.x;
+    feedback->current_y = snapshot.y;
     goal_handle->publish_feedback(feedback);
 
     if (remaining < 1e-6) {

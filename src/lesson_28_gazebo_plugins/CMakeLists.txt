@@ -10,13 +10,17 @@ install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
 
 # --- Tests ---
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
   find_package(ament_cmake_gtest REQUIRED)
+  find_package(ament_cmake_pytest REQUIRED)
   find_package(ament_index_cpp REQUIRED)
   find_package(urdf REQUIRED)
 
   ament_add_gtest(test_gazebo_urdf test/test_gazebo_urdf.cpp)
   ament_target_dependencies(test_gazebo_urdf ament_index_cpp urdf)
+
+  # Description-only smoke test (full Gazebo simulation skipped on CI)
+  ament_add_pytest_test(test_gazebo_simplebot_launch_smoke
+    test/test_gazebo_simplebot_launch_smoke.py)
 endif()
 
 ament_package()

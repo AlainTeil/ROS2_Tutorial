@@ -38,6 +38,14 @@ builtin_interfaces/Time stamp
 
 Place `.msg` files in the `msg/` directory of your package.
 
+> **Why `builtin_interfaces/Time` and not `float64`?** A POSIX timestamp
+> in `float64` loses precision around microseconds (53 bits of mantissa
+> vs. 64-bit nanoseconds), cannot represent the ROS time/sim-time
+> distinction, and is silently incompatible with TF2, rosbag2 indexing,
+> and `message_filters` synchronisers. `builtin_interfaces/Time` carries
+> a separate `int32 sec` and `uint32 nanosec` and is what every
+> ROS-aware tool understands.
+
 ### Code Generation Pipeline
 
 1. `rosidl_default_generators` reads `.msg` files

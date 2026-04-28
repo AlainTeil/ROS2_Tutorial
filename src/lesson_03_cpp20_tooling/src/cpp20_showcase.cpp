@@ -15,21 +15,22 @@ std::string format_sensor_reading(int sensor_id, double temperature, double humi
                      humidity);
 }
 
-std::optional<double> find_max_reading(const std::vector<double>& readings) {
+std::optional<double> find_max_reading(std::span<const double> readings) {
   if (readings.empty()) {
     return std::nullopt;
   }
   return *std::ranges::max_element(readings);
 }
 
-std::vector<double> filter_valid_readings(const std::vector<double>& readings, double min_val,
+std::vector<double> filter_valid_readings(std::span<const double> readings, double min_val,
                                           double max_val) {
-  // C++20 ranges pipeline: filter values within [min_val, max_val]
+  // C++20 ranges pipeline: keep values within [min_val, max_val].
   auto valid = readings | std::views::filter([min_val, max_val](double v) {
                  return v >= min_val && v <= max_val;
                });
 
-  // Collect into a vector
+  // Materialise into a vector. With C++23 this becomes:
+  //     return std::ranges::to<std::vector>(valid);
   std::vector<double> result;
   std::ranges::copy(valid, std::back_inserter(result));
   return result;

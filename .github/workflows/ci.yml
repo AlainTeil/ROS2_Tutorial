@@ -6,52 +6,92 @@ on:
   pull_request:
     branches: [main]
 
+# Cancel superseded runs on the same branch to save CI time.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   ROS_DISTRO: jazzy
+  # Shared apt package list. Single source of truth for build-and-test
+  # and clang-tidy jobs so they cannot drift apart.
+  ROS_APT_DEPS: >-
+    python3-colcon-common-extensions
+    python3-rosdep
+    ros-jazzy-ament-cmake-gtest
+    ros-jazzy-ament-cmake-pytest
+    ros-jazzy-example-interfaces
+    ros-jazzy-rclcpp
+    ros-jazzy-rclcpp-action
+    ros-jazzy-rclcpp-components
+    ros-jazzy-rclcpp-lifecycle
+    ros-jazzy-std-msgs
+    ros-jazzy-geometry-msgs
+    ros-jazzy-sensor-msgs
+    ros-jazzy-nav-msgs
+    ros-jazzy-visualization-msgs
+    ros-jazzy-lifecycle-msgs
+    ros-jazzy-tf2
+    ros-jazzy-tf2-ros
+    ros-jazzy-tf2-geometry-msgs
+    ros-jazzy-robot-state-publisher
+    ros-jazzy-joint-state-publisher-gui
+    ros-jazzy-xacro
+    ros-jazzy-urdf
+    ros-jazzy-ament-index-cpp
+    ros-jazzy-launch-testing
+    ros-jazzy-launch-testing-ament-cmake
+    ros-jazzy-launch-testing-ros
+    ros-jazzy-ros-gz-sim
+    ros-jazzy-ros-gz-bridge
 
 jobs:
   build-and-test:
     runs-on: ubuntu-24.04
     container:
       image: ros:jazzy-ros-base
+    env:
+      CCACHE_DIR: /github/home/.cache/ccache
+      CCACHE_COMPILERCHECK: content
+      CCACHE_MAXSIZE: 1G
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install ROS dependencies
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends \
-            python3-colcon-common-extensions \
-            python3-rosdep \
-            ros-${ROS_DISTRO}-ament-cmake-gtest \
-            ros-${ROS_DISTRO}-example-interfaces \
-            ros-${ROS_DISTRO}-rclcpp \
-            ros-${ROS_DISTRO}-rclcpp-action \
-            ros-${ROS_DISTRO}-rclcpp-components \
-            ros-${ROS_DISTRO}-rclcpp-lifecycle \
-            ros-${ROS_DISTRO}-std-msgs \
-            ros-${ROS_DISTRO}-geometry-msgs \
-            ros-${ROS_DISTRO}-sensor-msgs \
-            ros-${ROS_DISTRO}-nav-msgs \
-            ros-${ROS_DISTRO}-visualization-msgs \
-            ros-${ROS_DISTRO}-lifecycle-msgs \
-            ros-${ROS_DISTRO}-tf2 \
-            ros-${ROS_DISTRO}-tf2-ros \
-            ros-${ROS_DISTRO}-tf2-geometry-msgs \
-            ros-${ROS_DISTRO}-robot-state-publisher \
-            ros-${ROS_DISTRO}-joint-state-publisher-gui \
-            ros-${ROS_DISTRO}-xacro \
-            ros-${ROS_DISTRO}-urdf \
-            ros-${ROS_DISTRO}-ament-lint-auto \
-            ros-${ROS_DISTRO}-ament-index-cpp \
-            ros-${ROS_DISTRO}-ros-gz-sim \
-            ros-${ROS_DISTRO}-ros-gz-bridge
+          apt-get install -y --no-install-recommends ccache ${ROS_APT_DEPS}
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.cache/ccache
+          key: ccache-build-${{ runner.os }}-${{ env.ROS_DISTRO }}-${{ github.sha }}
+          restore-keys: |
+            ccache-build-${{ runner.os }}-${{ env.ROS_DISTRO }}-
+
+      - name: Cache colcon build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            build
+            install
+            log
+          key: colcon-${{ runner.os }}-${{ env.ROS_DISTRO }}-${{ hashFiles('src/**/CMakeLists.txt', 'src/**/package.xml') }}
+          restore-keys: |
+            colcon-${{ runner.os }}-${{ env.ROS_DISTRO }}-
 
       - name: Build
         shell: bash
         run: |
+          export PATH="/usr/lib/ccache:$PATH"
+          ccache --zero-stats
           source /opt/ros/${ROS_DISTRO}/setup.bash
-          colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release --event-handlers console_direct+
+          colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            --event-handlers console_direct+
+          ccache --show-stats
 
       - name: Test
         shell: bash
@@ -60,6 +100,14 @@ jobs:
           source install/setup.bash
           colcon test --event-handlers console_direct+
           colcon test-result --verbose
+
+      - name: Upload test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: colcon-test-logs
+          path: log/
+          if-no-files-found: ignore
 
   format-check:
     runs-on: ubuntu-24.04
@@ -73,10 +121,140 @@ jobs:
 
       - name: Check formatting
         run: |
-          find src/ -name '*.cpp' -o -name '*.hpp' | \
-            xargs clang-format-18 --dry-run --Werror --style=file
+          find src/ \( -name '*.cpp' -o -name '*.hpp' \) -print0 | \
+            xargs -0 clang-format-18 --dry-run --Werror --style=file
 
   clang-tidy:
+    runs-on: ubuntu-24.04
+    container:
+      image: ros:jazzy-ros-base
+    env:
+      CCACHE_DIR: /github/home/.cache/ccache
+      CCACHE_COMPILERCHECK: content
+      CCACHE_MAXSIZE: 1G
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ccache \
+            clang-tidy-18 \
+            ${ROS_APT_DEPS}
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.cache/ccache
+          key: ccache-tidy-${{ runner.os }}-${{ env.ROS_DISTRO }}-${{ github.sha }}
+          restore-keys: |
+            ccache-tidy-${{ runner.os }}-${{ env.ROS_DISTRO }}-
+
+      - name: Cache colcon build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            build
+            install
+            log
+          key: colcon-tidy-${{ runner.os }}-${{ env.ROS_DISTRO }}-${{ hashFiles('src/**/CMakeLists.txt', 'src/**/package.xml') }}
+          restore-keys: |
+            colcon-tidy-${{ runner.os }}-${{ env.ROS_DISTRO }}-
+
+      - name: Build with compile_commands.json
+        shell: bash
+        run: |
+          export PATH="/usr/lib/ccache:$PATH"
+          ccache --zero-stats
+          source /opt/ros/${ROS_DISTRO}/setup.bash
+          colcon build --cmake-args \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            --event-handlers console_direct+
+          ccache --show-stats
+
+      - name: Merge per-package compile_commands.json
+        shell: bash
+        run: |
+          python3 -c 'import json,glob; r=[]; [r.extend(json.load(open(f))) for f in glob.glob("build/*/compile_commands.json")]; json.dump(r, open("build/compile_commands.json","w"))'
+          ls -la build/compile_commands.json
+
+      - name: Run clang-tidy
+        shell: bash
+        run: |
+          set -euo pipefail
+          find src/ -name '*.cpp' -print0 | \
+            xargs -0 -P 4 -n 1 clang-tidy-18 -p build/ --config-file=.clang-tidy --quiet 2>&1 | \
+            tee clang-tidy-output.txt
+          # Fail only on real findings (warning:/error: lines from clang-tidy itself);
+          # exclude the "[N/M] Processing file" status lines and the "N warnings generated"
+          # banner from the underlying compiler.
+          if grep -E "^[^ ]+:[0-9]+:[0-9]+: (warning|error):" clang-tidy-output.txt; then
+            echo "::error::clang-tidy reported issues - see log above"
+            exit 1
+          fi
+
+      - name: Upload clang-tidy log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clang-tidy-output
+          path: clang-tidy-output.txt
+          if-no-files-found: ignore
+
+  docs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Doxygen
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends doxygen graphviz
+
+      - name: Build documentation (warnings are errors)
+        shell: bash
+        run: |
+          set -euo pipefail
+          doxygen Doxyfile
+          if [ -s doxygen-warnings.log ]; then
+            echo "::error::Doxygen emitted warnings:"
+            cat doxygen-warnings.log
+            exit 1
+          fi
+
+      - name: Upload generated docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: doxygen-html
+          path: docs/html
+          if-no-files-found: error
+
+  cppcheck:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cppcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cppcheck
+
+      - name: Run cppcheck
+        run: ./scripts/run_cppcheck.sh
+
+      - name: Upload cppcheck report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cppcheck-report
+          path: cppcheck-report.txt
+          if-no-files-found: ignore
+
+  coverage:
     runs-on: ubuntu-24.04
     container:
       image: ros:jazzy-ros-base
@@ -87,46 +265,112 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
-            clang-tidy-18 \
-            python3-colcon-common-extensions \
-            ros-${ROS_DISTRO}-ament-cmake-gtest \
-            ros-${ROS_DISTRO}-example-interfaces \
-            ros-${ROS_DISTRO}-rclcpp \
-            ros-${ROS_DISTRO}-rclcpp-action \
-            ros-${ROS_DISTRO}-rclcpp-components \
-            ros-${ROS_DISTRO}-rclcpp-lifecycle \
-            ros-${ROS_DISTRO}-std-msgs \
-            ros-${ROS_DISTRO}-geometry-msgs \
-            ros-${ROS_DISTRO}-sensor-msgs \
-            ros-${ROS_DISTRO}-nav-msgs \
-            ros-${ROS_DISTRO}-visualization-msgs \
-            ros-${ROS_DISTRO}-lifecycle-msgs \
-            ros-${ROS_DISTRO}-tf2 \
-            ros-${ROS_DISTRO}-tf2-ros \
-            ros-${ROS_DISTRO}-tf2-geometry-msgs \
-            ros-${ROS_DISTRO}-robot-state-publisher \
-            ros-${ROS_DISTRO}-xacro \
-            ros-${ROS_DISTRO}-urdf \
-            ros-${ROS_DISTRO}-ament-lint-auto \
-            ros-${ROS_DISTRO}-ament-index-cpp \
-            ros-${ROS_DISTRO}-ros-gz-sim \
-            ros-${ROS_DISTRO}-ros-gz-bridge
+            lcov \
+            ${ROS_APT_DEPS}
 
-      - name: Build with compile_commands.json
+      - name: Build with coverage flags and run tests
         shell: bash
         run: |
+          set -euo pipefail
           source /opt/ros/${ROS_DISTRO}/setup.bash
+          ./scripts/coverage.sh
+
+      - name: Upload coverage HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: coverage-html/
+          if-no-files-found: ignore
+
+      - name: Upload coverage info (lcov tracefile)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-info
+          path: coverage.info
+          if-no-files-found: ignore
+
+      - name: Upload to Codecov
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.info
+          flags: unittests
+          name: ros2-tutorial-coverage
+          fail_ci_if_error: false
+          verbose: false
+        env:
+          # Optional: set CODECOV_TOKEN as a repository secret for
+          # private repos or to silence rate-limited public uploads.
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  sanitizers:
+    # Build with AddressSanitizer + UndefinedBehaviorSanitizer and run the
+    # full test suite. Surfaces use-after-free, out-of-bounds reads, double
+    # frees, signed overflow, etc. that the optimizer would otherwise hide
+    # in Release builds. Leak detection is disabled because upstream rclcpp
+    # / rmw / fastdds report unrelated leaks on shutdown.
+    runs-on: ubuntu-24.04
+    container:
+      image: ros:jazzy-ros-base
+    env:
+      CCACHE_DIR: /github/home/.cache/ccache
+      CCACHE_COMPILERCHECK: content
+      CCACHE_MAXSIZE: 1G
+      ASAN_OPTIONS: detect_leaks=0:halt_on_error=1:abort_on_error=1:print_summary=1
+      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ccache ${ROS_APT_DEPS}
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: /github/home/.cache/ccache
+          key: ccache-asan-${{ runner.os }}-${{ env.ROS_DISTRO }}-${{ github.sha }}
+          restore-keys: |
+            ccache-asan-${{ runner.os }}-${{ env.ROS_DISTRO }}-
+
+      - name: Build with ASan + UBSan
+        shell: bash
+        run: |
+          export PATH="/usr/lib/ccache:$PATH"
+          ccache --zero-stats
+          source /opt/ros/${ROS_DISTRO}/setup.bash
+          SAN_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined -O1 -g"
           colcon build --cmake-args \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_CXX_FLAGS="${SAN_FLAGS}" \
+            -DCMAKE_C_FLAGS="${SAN_FLAGS}" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" \
+            -DCMAKE_SHARED_LINKER_FLAGS="-fsanitize=address,undefined" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             --event-handlers console_direct+
+          ccache --show-stats
 
-      - name: Run clang-tidy
+      - name: Run tests under sanitizers
         shell: bash
+        # The sanitizer job is informational: a failure here flags a real
+        # bug worth investigating but should not block PRs while we
+        # establish a clean baseline. Flip `continue-on-error` to false
+        # once the suite is sanitizer-clean.
+        continue-on-error: true
         run: |
-          find src/ -name '*.cpp' | \
-            xargs clang-tidy-18 -p build/ --config-file=.clang-tidy 2>&1 | \
-            tee clang-tidy-output.txt
-          if grep -q "warning:" clang-tidy-output.txt; then
-            echo "::warning::clang-tidy found issues"
-          fi
+          source /opt/ros/${ROS_DISTRO}/setup.bash
+          source install/setup.bash
+          colcon test --event-handlers console_direct+
+          colcon test-result --verbose
+
+      - name: Upload sanitizer test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sanitizer-test-logs
+          path: log/
+          if-no-files-found: ignore

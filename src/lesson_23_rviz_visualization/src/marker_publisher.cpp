@@ -28,6 +28,9 @@ Marker MarkerFactory::make_sphere(int id, const std::string& frame_id, double x,
   m.color.g = g;
   m.color.b = b;
   m.color.a = a;
+  // Auto-expire if the publisher stops emitting (2x publish period). A
+  // zero-duration lifetime would mean "forever".
+  m.lifetime = rclcpp::Duration::from_seconds(2.0);
   return m;
 }
 
@@ -59,6 +62,7 @@ Marker MarkerFactory::make_arrow(int id, const std::string& frame_id, double x0,
   m.color.g = g;
   m.color.b = b;
   m.color.a = a;
+  m.lifetime = rclcpp::Duration::from_seconds(2.0);
   return m;
 }
 
@@ -80,11 +84,12 @@ Marker MarkerFactory::make_text(int id, const std::string& frame_id, double x, d
   m.color.b = 1.0F;
   m.color.a = 1.0F;
   m.text = text;
+  m.lifetime = rclcpp::Duration::from_seconds(2.0);
   return m;
 }
 
 MarkerArray MarkerFactory::build_waypoint_markers(const std::string& frame_id,
-                                                  const std::vector<Waypoint>& waypoints) {
+                                                  std::span<const Waypoint> waypoints) {
   MarkerArray array;
   int id = 0;
 

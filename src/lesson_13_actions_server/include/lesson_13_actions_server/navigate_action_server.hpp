@@ -3,6 +3,7 @@
 /// @file navigate_action_server.hpp
 /// @brief Action server for NavigateToPoint — simulates 2D navigation.
 
+#include <atomic>
 #include <cmath>
 #include <memory>
 #include <thread>
@@ -45,8 +46,16 @@ class NavigateActionServer : public rclcpp::Node {
   /// @param feedback_hz How many feedback messages per second.
   explicit NavigateActionServer(double speed = 1.0, double feedback_hz = 5.0);
 
-  /// @return Number of goals accepted so far.
-  [[nodiscard]] std::size_t get_goals_accepted() const noexcept { return goals_accepted_; }
+  /// @return Number of goals accepted so far. Safe to call from any thread.
+  [[nodiscard]] std::size_t get_goals_accepted() const noexcept {
+    return goals_accepted_.load(std::memory_order_relaxed);
+  }
+
+  /// @return The callback group used for all action-server callbacks.
+  ///         Exposed so tests can verify the group is wired up.
+  [[nodiscard]] rclcpp::CallbackGroup::SharedPtr callback_group() const noexcept {
+    return callback_group_;
+  }
 
  private:
   rclcpp_action::GoalResponse handle_goal(const rclcpp_action::GoalUUID& uuid,
@@ -58,10 +67,13 @@ class NavigateActionServer : public rclcpp::Node {
 
   void execute(std::shared_ptr<GoalHandle> goal_handle);
 
+  rclcpp::CallbackGroup::SharedPtr callback_group_;
   rclcpp_action::Server<NavigateToPoint>::SharedPtr action_server_;
   double speed_;
   double feedback_hz_;
-  std::size_t goals_accepted_{0};
+  // Atomic so get_goals_accepted() (called from tests / other threads)
+  // never races with handle_accepted() running on the executor thread.
+  std::atomic<std::size_t> goals_accepted_{0};
   std::jthread execute_thread_;  ///< Goal execution thread — auto-joins on destruction.
 };
 

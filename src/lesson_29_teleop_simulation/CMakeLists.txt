@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(lesson_29_teleop_simulation)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(ament_cmake REQUIRED)
@@ -36,14 +38,17 @@ install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
 
 # --- Tests ---
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
   find_package(ament_cmake_gtest REQUIRED)
+  find_package(ament_cmake_pytest REQUIRED)
 
   ament_add_gtest(test_teleop_node test/test_teleop_node.cpp)
   target_link_libraries(test_teleop_node teleop_lib)
 
   ament_add_gtest(test_sensor_display test/test_sensor_display.cpp)
   target_link_libraries(test_sensor_display sensor_display_lib)
+
+  ament_add_pytest_test(test_teleop_sim_launch_smoke
+    test/test_teleop_sim_launch_smoke.py)
 endif()
 
 ament_package()

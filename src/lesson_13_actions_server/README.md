@@ -61,6 +61,32 @@ while a goal is still executing.
 std::jthread execute_thread_;  // auto-joins on destruction
 ```
 
+### Callback Groups and Shared State
+
+Action-server callbacks (`handle_goal`, `handle_cancel`, `handle_accepted`)
+run on the executor thread, while `execute()` runs on a `std::jthread`.
+Two consequences follow:
+
+1. **Pin the action callbacks to a `MutuallyExclusive` callback group.**
+   Without an explicit group, every callback lands in the node's default
+   group; on a `MultiThreadedExecutor` they may then re-enter each other
+   in unexpected ways. Creating a dedicated group makes the contract
+   explicit and keeps the lesson portable across executors.
+
+   ```cpp
+   callback_group_ = create_callback_group(
+       rclcpp::CallbackGroupType::MutuallyExclusive);
+   action_server_ = rclcpp_action::create_server<NavigateToPoint>(
+       this, "navigate_to_point", goal_cb, cancel_cb, accepted_cb,
+       rcl_action_server_get_default_options(), callback_group_);
+   ```
+
+2. **Any state shared between executor callbacks and the worker thread
+   must be synchronised.** SimpleBot's `goals_accepted_` counter is
+   written by `handle_accepted` (executor thread) and read by tests and
+   diagnostics (other threads), so it is declared `std::atomic<size_t>`.
+   For richer shared state prefer a `std::mutex` or a lock-free queue.
+
 ## Code
 
 | File | Purpose |

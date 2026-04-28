@@ -1,0 +1,56 @@
+# Publish the Doxygen-generated documentation to GitHub Pages on every
+# push to main. Pull requests build the site (via the regular `docs`
+# job in ci.yml) but only main pushes deploy.
+name: Deploy Doxygen to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Pages-recommended permissions/concurrency.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Doxygen
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends doxygen graphviz
+
+      - name: Build documentation
+        run: |
+          set -euo pipefail
+          doxygen Doxyfile
+          if [ -s doxygen-warnings.log ]; then
+            echo "::error::Doxygen emitted warnings:"
+            cat doxygen-warnings.log
+            exit 1
+          fi
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/html
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

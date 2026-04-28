@@ -46,12 +46,36 @@ colcon build --packages-select lesson_31_sensor_processing
 ros2 launch lesson_31_sensor_processing autonomous_sim_launch.py
 ```
 
+> **`Twist` vs `TwistStamped`.** This lesson publishes `geometry_msgs/Twist`
+> on `/cmd_vel`, which is still the historical default and what the
+> Gazebo Harmonic `gz-sim-diff-drive-system` plugin accepts out of the
+> box. The wider ROS2 ecosystem is migrating to
+> **`geometry_msgs/TwistStamped`** so commands carry a frame and a
+> timestamp (relevant for fleets, time-synced control, and `nav2`).
+> When you upgrade the bridge or the plugin, switch the publisher type
+> and add a `header.stamp = now()` — the rest of the avoidance logic is
+> unchanged.
+
 ## Exercises
 
 1. Tune `safety_distance` and `max_speed` for smoother behaviour.
 2. Switch the gap-finding from 3 sectors to N sectors for finer
    direction resolution.
 3. Add MarkerArray visualisation of the selected gap direction.
+
+## Testing
+
+GTest exercises `ObstacleAvoidance` with synthetic scans (no ROS
+graph). A launch description **smoke test** covers the full simulation
+stack without requiring Gazebo:
+
+- `test/test_autonomous_sim_launch_smoke.py` — loads the autonomous
+  simulation launch file via `runpy` and verifies its entity list.
+
+```bash
+colcon test --packages-select lesson_31_sensor_processing
+colcon test-result --verbose
+```
 
 ## Key Takeaways
 

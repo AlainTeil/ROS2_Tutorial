@@ -4,45 +4,69 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <ranges>
 
 namespace lesson_31 {
 
 // --- AvoidanceLogic ---
 
-double AvoidanceLogic::sector_min(const std::vector<float>& ranges, std::size_t start,
-                                  std::size_t end, float range_min, float range_max) {
-  double best = std::numeric_limits<double>::max();
-  for (std::size_t i = start; i < end && i < ranges.size(); ++i) {
-    const float k_r = ranges[i];
-    if (std::isfinite(k_r) && k_r >= range_min && k_r <= range_max) {
-      best = std::min(best, static_cast<double>(k_r));
-    }
+double AvoidanceLogic::sector_min(std::span<const float> ranges, std::size_t start, std::size_t end,
+                                  float range_min, float range_max) {
+  // Clamp the half-open interval [start, end) to the actual span.
+  const std::size_t lo = std::min(start, ranges.size());
+  const std::size_t hi = std::min(end, ranges.size());
+  if (hi <= lo) {
+    return kNoReturn;
   }
-  return best;
+
+  // C++20 ranges pipeline: take the sector subspan, drop NaN/out-of-range
+  // returns via views::filter, then pick the minimum with std::ranges::min_element.
+  auto sector = ranges.subspan(lo, hi - lo);
+  auto valid = sector | std::views::filter([range_min, range_max](float r) {
+                 return std::isfinite(r) && r >= range_min && r <= range_max;
+               });
+
+  auto it = std::ranges::min_element(valid);
+  if (it == std::ranges::end(valid)) {
+    return kNoReturn;
+  }
+  return static_cast<double>(*it);
 }
 
 VelocityCommand AvoidanceLogic::decide(double left_min, double front_min, double right_min) const {
   VelocityCommand cmd;
 
-  if (front_min < safety_distance && left_min < safety_distance && right_min < safety_distance) {
+  // Fail-safe: if every sector is unknown, the scan carries no usable
+  // information — do not move.
+  if (left_min == kNoReturn && front_min == kNoReturn && right_min == kNoReturn) {
+    return cmd;
+  }
+
+  // Treat "no return" in a single sector as "blocked" rather than "clear".
+  // The last thing we want is to charge forward into a blind sector.
+  const double front_eff = (front_min == kNoReturn) ? 0.0 : front_min;
+  const double left_eff = (left_min == kNoReturn) ? 0.0 : left_min;
+  const double right_eff = (right_min == kNoReturn) ? 0.0 : right_min;
+
+  if (front_eff < safety_distance && left_eff < safety_distance && right_eff < safety_distance) {
     // All blocked → rotate in place
     cmd.angular_z = max_angular;
     return cmd;
   }
 
-  if (front_min > slow_distance) {
+  if (front_eff > slow_distance) {
     // Front is clear — drive forward at max speed
     cmd.linear_x = max_linear;
-  } else if (front_min > safety_distance) {
+  } else if (front_eff > safety_distance) {
     // Front partially blocked — scale speed linearly
-    const double k_ratio = (front_min - safety_distance) / (slow_distance - safety_distance);
+    const double k_ratio = (front_eff - safety_distance) / (slow_distance - safety_distance);
     cmd.linear_x = max_linear * k_ratio;
   }
   // else: front blocked, linear stays 0
 
-  if (front_min < slow_distance) {
+  if (front_eff < slow_distance) {
     // Need to turn — pick the side with more room
-    if (left_min > right_min) {
+    if (left_eff > right_eff) {
       cmd.angular_z = max_angular;
     } else {
       cmd.angular_z = -max_angular;
@@ -64,32 +88,43 @@ ObstacleAvoidance::ObstacleAvoidance(const rclcpp::NodeOptions& options)
   declare_parameter("slow_distance", logic_.slow_distance);
   declare_parameter("max_linear", logic_.max_linear);
   declare_parameter("max_angular", logic_.max_angular);
+  declare_parameter<int>("watchdog_timeout_ms", static_cast<int>(watchdog_timeout_.count()));
 
   logic_.safety_distance = get_parameter("safety_distance").as_double();
   logic_.slow_distance = get_parameter("slow_distance").as_double();
   logic_.max_linear = get_parameter("max_linear").as_double();
   logic_.max_angular = get_parameter("max_angular").as_double();
+  watchdog_timeout_ = std::chrono::milliseconds(get_parameter("watchdog_timeout_ms").as_int());
 
   cmd_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
   scan_sub_ = create_subscription<sensor_msgs::msg::LaserScan>(
-      "scan", 10,
-      [this](sensor_msgs::msg::LaserScan::ConstSharedPtr msg) { scan_callback(std::move(msg)); });
+      "scan", 10, [this](sensor_msgs::msg::LaserScan::ConstSharedPtr msg) { scan_callback(msg); });
 
-  // Watchdog: publish zero velocity if scan data stops arriving
+  // Watchdog: publish zero velocity if scan data stops arriving.
   watchdog_timer_ = create_wall_timer(watchdog_timeout_, [this]() { watchdog_callback(); });
 
-  RCLCPP_INFO(get_logger(), "ObstacleAvoidance ready — safety=%.2f m, slow=%.2f m",
-              logic_.safety_distance, logic_.slow_distance);
+  RCLCPP_INFO(get_logger(), "ObstacleAvoidance ready — safety=%.2f m, slow=%.2f m, watchdog=%ld ms",
+              logic_.safety_distance, logic_.slow_distance,
+              static_cast<long>(watchdog_timeout_.count()));
 }
 
 void ObstacleAvoidance::scan_callback(sensor_msgs::msg::LaserScan::ConstSharedPtr msg) {
-  ++scan_count_;
+  scan_count_.fetch_add(1, std::memory_order_relaxed);
   last_scan_time_ = now();
-  const auto k_n = msg->ranges.size();
-  if (k_n == 0) {
+
+  // Defensive: discard malformed scans rather than dividing by zero or
+  // trusting bogus ranges.
+  if (!msg || msg->ranges.empty() || msg->range_min < 0.0F || msg->range_max <= msg->range_min) {
+    const geometry_msgs::msg::Twist stop;
+    cmd_pub_->publish(stop);
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
+                         "Discarding malformed LaserScan (n=%zu, range_min=%.2f, range_max=%.2f)",
+                         msg ? msg->ranges.size() : 0, msg ? msg->range_min : 0.0F,
+                         msg ? msg->range_max : 0.0F);
     return;
   }
 
+  const auto k_n = msg->ranges.size();
   // Split scan into 3 sectors: left (0..n/3), front (n/3..2n/3), right (2n/3..n)
   const std::size_t k_third = k_n / 3;
   const double k_left_min =
@@ -111,7 +146,7 @@ void ObstacleAvoidance::watchdog_callback() {
   auto const elapsed = now() - last_scan_time_;
   if (elapsed > rclcpp::Duration(watchdog_timeout_)) {
     // No scan data received recently — send emergency stop
-    geometry_msgs::msg::Twist stop;
+    const geometry_msgs::msg::Twist stop;
     cmd_pub_->publish(stop);
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
                          "Watchdog: no scan data for %.1f s — sending zero velocity",

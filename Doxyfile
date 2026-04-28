@@ -43,6 +43,11 @@ PREDEFINED             = __cplusplus=202002L
 WARN_IF_UNDOCUMENTED   = YES
 WARN_IF_DOC_ERROR      = YES
 WARN_NO_PARAMDOC       = YES
+# Treat any documentation warning as a build failure. CI passes
+# `-Werror=YES` on the command line as well; this default keeps local
+# `doxygen` runs aligned with what CI enforces.
+WARN_AS_ERROR          = FAIL_ON_WARNINGS
+WARN_LOGFILE           = doxygen-warnings.log
 
 # Markdown
 USE_MDFILE_AS_MAINPAGE = ./README.md

@@ -13,13 +13,22 @@ NavigateActionServer::NavigateActionServer(double speed, double feedback_hz)
     : Node("navigate_action_server"), speed_(speed), feedback_hz_(feedback_hz) {
   using namespace std::placeholders;
 
+  // All action-server callbacks run on a single mutually-exclusive group so
+  // they cannot interleave with each other on a multi-threaded executor.
+  // The actual goal work then hops to a std::jthread (see handle_accepted),
+  // freeing the executor thread to keep servicing other callbacks.
+  callback_group_ = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+
+  rcl_action_server_options_t server_options = rcl_action_server_get_default_options();
+
   action_server_ = rclcpp_action::create_server<NavigateToPoint>(
       this, "navigate_to_point",
       [this](auto&& PH1, auto&& PH2) {
         return handle_goal(std::forward<decltype(PH1)>(PH1), std::forward<decltype(PH2)>(PH2));
       },
       [this](auto&& PH1) { return handle_cancel(std::forward<decltype(PH1)>(PH1)); },
-      [this](auto&& PH1) { handle_accepted(std::forward<decltype(PH1)>(PH1)); });
+      [this](auto&& PH1) { handle_accepted(std::forward<decltype(PH1)>(PH1)); }, server_options,
+      callback_group_);
 
   RCLCPP_INFO(get_logger(), "NavigateActionServer ready (speed=%.1f m/s, feedback=%.0f Hz)", speed_,
               feedback_hz_);
@@ -47,7 +56,7 @@ rclcpp_action::CancelResponse NavigateActionServer::handle_cancel(
 }
 
 void NavigateActionServer::handle_accepted(std::shared_ptr<GoalHandle> goal_handle) {
-  ++goals_accepted_;
+  goals_accepted_.fetch_add(1, std::memory_order_relaxed);
   // If a previous goal thread is still running, wait for it to finish.
   if (execute_thread_.joinable()) {
     execute_thread_.join();

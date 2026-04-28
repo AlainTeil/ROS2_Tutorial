@@ -1,0 +1,56 @@
+# Pre-commit hooks for the ROS2 C++20 Tutorial workspace.
+#
+# Install once:
+#   pip install --user pre-commit
+#   pre-commit install
+#
+# Run on the whole repo manually:
+#   pre-commit run --all-files
+#
+# Hooks chosen here mirror what CI enforces so failures show up locally
+# before pushing.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.patch$'
+      - id: end-of-file-fixer
+        exclude: '\.patch$'
+      - id: check-yaml
+        args: ['--allow-multiple-documents']
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=512']
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+
+  # C++ formatting — must match the .clang-format pinned to clang-format 18
+  # used in CI's format-check job.
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v18.1.8
+    hooks:
+      - id: clang-format
+        types_or: [c++, c]
+
+  # Python (launch tests + setup.py shims) — keep them lint-clean.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.0
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+
+  # Shell scripts under scripts/ — keep them shellcheck-clean.
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.10.0
+    hooks:
+      - id: shellcheck
+        args: ['--severity=warning']
+
+  # YAML linting (CI workflow + this very file).
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: ['-d', '{extends: relaxed, rules: {line-length: {max: 200}}}']

@@ -1,5 +1,10 @@
 # ROS2 C++20 Tutorial
 
+[![CI](https://github.com/AlainTeil/ROS2_Tutorial/actions/workflows/ci.yml/badge.svg)](https://github.com/AlainTeil/ROS2_Tutorial/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/AlainTeil/ROS2_Tutorial/branch/main/graph/badge.svg)](https://codecov.io/gh/AlainTeil/ROS2_Tutorial)
+[![Docs](https://github.com/AlainTeil/ROS2_Tutorial/actions/workflows/pages.yml/badge.svg)](https://github.com/AlainTeil/ROS2_Tutorial/actions/workflows/pages.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A **32-lesson progressive tutorial** for learning ROS2 robotics programming with modern C++20.
 
 - **ROS2 Distribution:** Jazzy Jalisco
@@ -162,12 +167,81 @@ colcon build --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 clang-tidy -p build/lesson_01_what_is_ros2 src/lesson_01_what_is_ros2/src/hello_ros2_world.cpp
 ```
 
+### Whole-workspace Linting (cppcheck)
+
+```bash
+# Runs cppcheck across all lessons with tutorial-friendly suppressions
+./scripts/run_cppcheck.sh
+```
+
+The script auto-discovers every `src/*/include` directory, applies
+shared suppressions (notably `useInitializationList` so the tutorial
+code can keep `create_publisher`/`create_client` calls in constructor
+bodies for clarity), and writes a `cppcheck-report.txt` log.
+
+### Coverage Reports (lcov)
+
+```bash
+# Requires lcov; produces coverage-html/index.html
+sudo apt install -y lcov
+./scripts/coverage.sh
+```
+
+The script does a full Debug rebuild with `--coverage`, runs the entire
+test suite, and renders an HTML report under `coverage-html/`. System,
+ROS, generated, and test sources are stripped automatically.
+
 ### Documentation (Doxygen)
 
 ```bash
 doxygen Doxyfile
 # Open docs/html/index.html in a browser
 ```
+
+The `Doxyfile` sets `WARN_AS_ERROR = FAIL_ON_WARNINGS`, so any
+undocumented public symbol or broken `@param` reference fails the local
+`doxygen` run — matching the CI gate (see below).
+
+### Continuous Integration
+
+The GitHub Actions workflow at
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs seven jobs on
+every push and pull request:
+
+| Job | What it gates on |
+|-----|------------------|
+| `build-and-test` | `colcon build` + `colcon test` for every lesson on `ros:jazzy-ros-base` (uses `ccache` for faster reruns) |
+| `format-check` | `clang-format --dry-run --Werror` over `src/` |
+| `clang-tidy` | `clang-tidy` against a merged `compile_commands.json`; **fails on any warning** (uses `ccache`) |
+| `cppcheck` | `scripts/run_cppcheck.sh`; **fails on any unsuppressed finding** |
+| `coverage` | `scripts/coverage.sh`; uploads `coverage-html` and `coverage.info` as artifacts and pushes results to Codecov |
+| `sanitizers` | Debug build with `-fsanitize=address,undefined`, runs the test suite under ASan + UBSan; informational (`continue-on-error`) until the suite is sanitizer-clean |
+| `docs` | `doxygen Doxyfile`; **fails on any warning** and uploads `docs/html` as an artifact |
+
+Build jobs cache `~/.cache/ccache` between runs, so warm rebuilds finish
+in a fraction of the cold-build time.
+
+A separate workflow at [`.github/workflows/pages.yml`](.github/workflows/pages.yml)
+publishes the generated Doxygen HTML to GitHub Pages on every push to
+`main` (manual `workflow_dispatch` trigger also available).
+
+### Pre-commit Hooks
+
+The repository ships a [`.pre-commit-config.yaml`](.pre-commit-config.yaml)
+that mirrors the CI gates locally. Install it once:
+
+```bash
+pip install --user pre-commit
+pre-commit install              # auto-run on every commit
+pre-commit run --all-files      # run manually on the whole repo
+```
+
+Hooks: `clang-format` (matches CI), `ruff` (Python launch tests),
+`shellcheck` (the `scripts/` shell helpers), `yamllint` (workflow files),
+plus the standard whitespace / EOL / large-file checks.
+
+Reproduce locally with the commands shown above; CI runs identical
+steps inside the official `ros:jazzy-ros-base` container.
 
 ---
 
@@ -183,7 +257,8 @@ Most lessons also include:
 
 - **src/** — Source files (node implementations)
 - **include/** — Header files
-- **test/** — GTest/GMock unit tests (and selective integration tests)
+- **test/** — GTest unit tests, plus `launch_testing` integration tests
+  for launch-bearing lessons (see [Lesson 17](src/lesson_17_launch_basics/README.md))
 
 Some lessons focus on configuration rather than code and instead contain **launch/**, **urdf/**, **config/**, or **worlds/** directories.
 

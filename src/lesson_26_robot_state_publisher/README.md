@@ -21,6 +21,15 @@
 | **JointState** | `sensor_msgs/msg/JointState` — position, velocity, effort per joint |
 | **/robot_description** | String topic containing the full URDF XML |
 
+> **`/robot_description` QoS gotcha.** `robot_state_publisher` advertises
+> `/robot_description` with **`transient_local`** durability and a depth
+> of 1 — i.e. it is a *latched* topic. Any subscriber created with the
+> default `volatile` QoS will appear to receive nothing because the
+> publisher already sent the URDF before the subscriber existed. If you
+> are debugging "where did my URDF go?", subscribe with
+> `rclcpp::QoS(1).transient_local()` (or pass
+> `--qos-durability transient_local` to `ros2 topic echo`).
+
 ## Code
 
 * **WheelJointPublisher** — publishes `JointState` for left/right wheels,
@@ -41,6 +50,26 @@ ros2 launch lesson_26_robot_state_publisher display_robot_launch.py
    and observe the wheels spinning in RViz2.
 2. Add a `LaserScan` display in RViz2 (placeholder — data in lesson 28).
 3. Record the JointState topic with `ros2 bag record` and replay it.
+
+## Testing
+
+In addition to the GTest unit suite for `WheelJointPublisher`, this
+package ships a launch description **smoke test**:
+
+- `test/test_display_robot_launch_smoke.py` — loads
+  `display_robot_launch.py` via `runpy` and asserts that the returned
+  `LaunchDescription` contains the expected entities
+  (`robot_state_publisher`, `joint_state_publisher_gui`, `rviz2`).
+
+The launch file is **not actually executed** because it spawns GUI
+processes (`joint_state_publisher_gui`, `rviz2`) that need a display.
+The smoke test still catches Python syntax errors, missing share files,
+and broken xacro paths.
+
+```bash
+colcon test --packages-select lesson_26_robot_state_publisher
+colcon test-result --verbose
+```
 
 ## Key Takeaways
 

@@ -47,11 +47,46 @@ colcon build --packages-select lesson_27_gazebo_intro
 ros2 launch lesson_27_gazebo_intro gazebo_empty_world_launch.py
 ```
 
+## Testing
+
+Gazebo Harmonic cannot run in headless CI, so this package ships a
+launch description **smoke test**:
+
+- `test/test_gazebo_empty_world_launch_smoke.py` — loads
+  `gazebo_empty_world_launch.py` via `runpy` and asserts it produces at
+  least four entities (`gz_sim`, `robot_state_publisher`, spawn entity,
+  `/clock` bridge). Catches xacro/world path regressions without
+  launching `gz sim`.
+
+```bash
+colcon test --packages-select lesson_27_gazebo_intro
+colcon test-result --verbose
+```
+
 ## Exercises
 
 1. Add a box obstacle to the empty world SDF.
 2. Bridge the `/odom` topic and echo it in another terminal.
 3. Change the physics step size in the SDF and observe the effect.
+
+## Troubleshooting
+
+Gazebo Harmonic + ROS2 Jazzy is the supported pairing, but a handful of
+failure modes account for almost every bug report. Try these first:
+
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| `gz sim` exits with `Failed to load plugin libgz-sim-…` | Mixed Gazebo versions on `LD_LIBRARY_PATH` | `apt purge` any old `gazebo-classic` / `libgazebo*` packages; only `gz-harmonic` should remain |
+| `ros2 topic echo /clock` shows nothing | Bridge not running or wrong type string | Confirm `parameter_bridge /clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock` is in the launch file and there is **no** trailing `]` typo |
+| Spawned model falls through the ground | URDF inertia tensor zero or wrong (see Lesson 24) | Re-derive `Ixx/Iyy/Izz` from the formulas; never leave a link with `mass=0` |
+| Spawned model jitters or drifts at rest | Physics step too large vs. controller rate | Lower `<max_step_size>` in the world SDF (try 0.001 s) |
+| TF lookups fail with `Lookup would require extrapolation into the future` | A node is on wall-time while Gazebo is on sim-time | Pass `use_sim_time:=true` (or set the parameter in the launch file) on every ROS node consuming `/clock` |
+| `ros2 topic list` shows the Gazebo topic but no data crosses the bridge | Wrong message-type mapping in the bridge YAML | Use `ros2 run ros_gz_bridge parameter_bridge --help` to dump the supported pairs and check spellings |
+| `gz sim` opens with a black 3-D viewport | Mesa/llvmpipe fallback on a headless box | Run with `LIBGL_ALWAYS_SOFTWARE=1`, or install proper GPU drivers, or use `-s` (server-only) when scripting |
+
+If in doubt, run Gazebo in verbose mode: `gz sim -v 4 empty.sdf`. The
+level-4 log includes plugin search paths and SDF parse warnings that
+are otherwise hidden.
 
 ## Key Takeaways
 

@@ -59,6 +59,13 @@ bool    feasible
 
 ## Code
 
+> **Why two services in one lesson?** `AddTwoInts` is the canonical
+> stock service — it lets you focus on the API without designing a
+> message. `ComputeTrajectory` then forces you through the full custom
+> `.srv` workflow (file in `srv/`, `rosidl_generate_interfaces`,
+> generated headers, `<member_of_group>rosidl_interface_packages`).
+> Together they cover both ends of the spectrum a real package will hit.
+
 | File | Purpose |
 |------|---------|
 | `srv/ComputeTrajectory.srv` | Custom service definition |

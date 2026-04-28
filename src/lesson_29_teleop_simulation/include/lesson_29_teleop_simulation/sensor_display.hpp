@@ -4,7 +4,7 @@
 
 #include <cstddef>
 #include <optional>
-#include <vector>
+#include <span>
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
@@ -21,8 +21,13 @@ struct NearestObstacle {
 /// Pure helpers for scan processing.
 struct ScanProcessor {
   /// Find the nearest valid obstacle in a LaserScan.
+  ///
+  /// `ranges` is a `std::span<const float>` (C++20) so callers can pass the
+  /// `std::vector<float>` from a `LaserScan`, a `std::array`, or any other
+  /// contiguous container without copying.
+  ///
   /// @return NearestObstacle or nullopt if no valid readings.
-  [[nodiscard]] static std::optional<NearestObstacle> find_nearest(const std::vector<float>& ranges,
+  [[nodiscard]] static std::optional<NearestObstacle> find_nearest(std::span<const float> ranges,
                                                                    float range_min, float range_max,
                                                                    float angle_min,
                                                                    float angle_increment);

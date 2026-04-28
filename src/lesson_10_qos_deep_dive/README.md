@@ -16,6 +16,20 @@ After completing this lesson you will be able to:
 
 ## Concepts
 
+### From the `10` shorthand to a real `QoS` profile
+
+Lessons 7 – 9 created publishers and subscribers with a literal `10`:
+
+```cpp
+create_publisher<Int32>("counter", 10);
+```
+
+That integer is implicitly converted to `rclcpp::QoS(rclcpp::KeepLast(10))`,
+which pulls in every other policy default (`RELIABLE`, `VOLATILE`,
+no deadline, infinite lifespan). The shorthand is fine for tutorials,
+but for any non-toy topic you want the **explicit profile** below so the
+contract is visible at the call site.
+
 ### QoS Policies Overview
 
 | Policy | Values | Default |
@@ -46,11 +60,48 @@ A subscriber can connect to a publisher only if their QoS profiles are
 
 ### QoS Event Callbacks
 
-ROS2 provides callbacks for QoS events such as incompatible QoS detection:
+When two endpoints negotiate incompatible policies, ROS2 fires an event
+on the offending side (rather than silently dropping data). Hook them via
+`PublisherOptions::event_callbacks` and
+`SubscriptionOptions::event_callbacks`. The exact info-struct names in
+Jazzy are:
+
+| Side | Event info struct |
+|------|------------------|
+| Publisher (incompatible QoS) | `rclcpp::QOSOfferedIncompatibleQoSInfo` |
+| Subscription (incompatible QoS) | `rclcpp::QOSRequestedIncompatibleQoSInfo` |
+| Publisher (deadline missed) | `rclcpp::QOSOfferedDeadlineMissedInfo` |
+| Subscription (deadline missed) | `rclcpp::QOSRequestedDeadlineMissedInfo` |
+| Subscription (liveliness lost) | `rclcpp::QOSLivelinessChangedInfo` |
+
+> ⚠️ Earlier ROS2 documentation referred to these as
+> `QoSPublisherOfferedIncompatibleQoSInfo` and
+> `QoSSubscriptionRequestedIncompatibleQoSInfo`. Those names do not
+> exist in Jazzy — use the `QOS…` spelling above.
+
+[`src/qos_demo.cpp`](src/qos_demo.cpp) wires the callback up like this:
 
 ```cpp
-rclcpp::QoSPublisherOfferedIncompatibleQoSInfo
-rclcpp::QoSSubscriptionRequestedIncompatibleQoSInfo
+rclcpp::PublisherOptions sensor_opts;
+sensor_opts.event_callbacks.incompatible_qos_callback =
+    [this](rclcpp::QOSOfferedIncompatibleQoSInfo& info) {
+      ++incompatible_count_;
+      RCLCPP_WARN(get_logger(),
+                  "Sensor publisher: incompatible QoS detected! "
+                  "policy_kind=%d total=%d",
+                  info.last_policy_kind, info.total_count);
+    };
+sensor_pub_ = create_publisher<std_msgs::msg::Float64>(
+    "sensor_stream", QosProfiles::sensor_stream(), sensor_opts);
+```
+
+To exercise the path, run the demo and start a `RELIABLE` subscriber on
+`/sensor_stream`:
+
+```bash
+ros2 run lesson_10_qos_deep_dive qos_demo
+ros2 topic echo /sensor_stream --qos-reliability reliable
+# → "Sensor publisher: incompatible QoS detected! policy_kind=…"
 ```
 
 ## Code

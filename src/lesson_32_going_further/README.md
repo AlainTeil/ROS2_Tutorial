@@ -31,7 +31,27 @@
 | **Patrol action** | Custom `NavigateToPoint.action` from Lesson 13 | Drives a square patrol |
 | **TF2** | Broadcasts `odom → base_link` | Updated every timer tick |
 | **Parameters** | `patrol_speed`, `heartbeat_period` | Declared with descriptors |
-| **Thread safety** | `std::jthread` for patrol execution | Auto-joins on destruction |
+| **Thread safety** | `std::jthread` + `std::mutex` for shared pose | Auto-joins on destruction |
+
+### Concurrency Contract
+
+The capstone is the first node in the tutorial that has a worker thread
+(`std::jthread patrol_thread_`) modifying state that is also read from
+the executor thread (timer callback, pose service). Two rules keep this
+sound:
+
+1. **All accesses to `pose_` are guarded by `pose_mutex_`** — read and
+   write paths take the lock and copy a snapshot before doing any I/O.
+   This is why `CapstoneRobot::pose()` returns `Pose2D` *by value*.
+2. **The patrol action server rejects goals unless the node is `ACTIVE`.**
+   `handle_goal()` checks `get_current_state().id()` against
+   `lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE` and returns
+   `REJECT` otherwise, so a goal can never run while the heartbeat
+   publisher and TF broadcaster are torn down or not yet wired up.
+3. **`timer_callback()` is defensive about lifecycle teardown.** It
+   short-circuits if `heartbeat_pub_` is reset or not activated, which
+   covers the small window where a fired timer races with `on_deactivate`
+   or `on_cleanup`.
 
 ### Architecture
 
@@ -121,6 +141,27 @@ ros2 service call /get_pose example_interfaces/srv/Trigger
 ros2 action send_goal /patrol lesson_13_actions_server/action/NavigateToPoint \
   "{target_x: 2.0, target_y: 2.0}"
 ```
+
+## Testing
+
+This capstone package combines GTest unit coverage with a full
+`launch_testing` integration test:
+
+- `test/test_capstone_node.cpp` — GTest suite for the capstone node
+  library.
+- `test/test_capstone_launch.py` — launches `capstone_robot_node` as a
+  `LifecycleNode`, calls `/capstone_robot/get_state`
+  (`lifecycle_msgs/srv/GetState`) and asserts the state is
+  `UNCONFIGURED` (1) or `INACTIVE` (2), then verifies a clean exit code
+  on shutdown.
+
+```bash
+colcon test --packages-select lesson_32_going_further
+colcon test-result --verbose
+```
+
+See [Lesson 17](../lesson_17_launch_basics/README.md) for the canonical
+`launch_testing` reference.
 
 ## Key Takeaways
 

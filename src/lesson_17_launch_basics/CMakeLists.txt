@@ -7,4 +7,9 @@ find_package(ament_cmake REQUIRED)
 # Install launch files
 install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
 
+if(BUILD_TESTING)
+  find_package(launch_testing_ament_cmake REQUIRED)
+  add_launch_test(test/test_pub_sub_launch.py)
+endif()
+
 ament_package()

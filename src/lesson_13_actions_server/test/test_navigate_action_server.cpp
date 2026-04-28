@@ -72,3 +72,10 @@ TEST_F(NavigateActionServerTest, InitialGoalCountIsZero) {
   auto node = std::make_shared<lesson_13::NavigateActionServer>();
   EXPECT_EQ(node->get_goals_accepted(), 0U);
 }
+
+TEST_F(NavigateActionServerTest, CallbackGroupIsMutuallyExclusive) {
+  auto node = std::make_shared<lesson_13::NavigateActionServer>();
+  auto group = node->callback_group();
+  ASSERT_NE(group, nullptr);
+  EXPECT_EQ(group->type(), rclcpp::CallbackGroupType::MutuallyExclusive);
+}

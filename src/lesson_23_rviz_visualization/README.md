@@ -45,6 +45,24 @@ colcon build --packages-select lesson_23_rviz_visualization
 ros2 launch lesson_23_rviz_visualization rviz_demo_launch.py
 ```
 
+## Testing
+
+RViz2 needs a display server, so the full launch is skipped in headless
+CI. Instead this package ships:
+
+- `test/test_marker_publisher.cpp` — GTest unit tests for the marker
+  publisher (frame ids, marker counts, lifetimes).
+- `test/test_rviz_demo_launch_smoke.py` — description-only smoke test
+  that imports `rviz_demo_launch.py` via `runpy`, calls
+  `generate_launch_description()`, and asserts it produces at least the
+  marker publisher + RViz nodes. Catches missing `.rviz` config or
+  rename regressions without starting RViz2.
+
+```bash
+colcon test --packages-select lesson_23_rviz_visualization
+colcon test-result --verbose
+```
+
 ## Exercises
 
 1. Add LINE_STRIP markers connecting all waypoints.

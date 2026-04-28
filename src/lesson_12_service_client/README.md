@@ -41,15 +41,36 @@ while (!client_->wait_for_service(1s)) {
 
 ### Asynchronous Calls
 
-ROS2 service calls are asynchronous by default:
+ROS2 service calls are asynchronous by default. There are two ways to wait
+for the response, and **only one of them is safe in arbitrary contexts**.
 
 ```cpp
+// Recommended — callback-based. Never blocks; never deadlocks.
+client_->async_send_request(request, [](SharedFuture future) {
+  // Runs on the executor thread once the response arrives.
+});
+```
+
+```cpp
+// Use with care — only from a thread that is NOT spinning the node.
 auto future = client_->async_send_request(request);
-// Option 1: callback-based
-auto future = client_->async_send_request(request, callback);
-// Option 2: spin until complete
 rclcpp::spin_until_future_complete(node, future);
 ```
+
+> ⚠️ **Deadlock warning.** `rclcpp::spin_until_future_complete(node, future)`
+> internally spins the executor that owns `node`. If you call it from
+> *inside* a callback that is itself running on that executor (a timer
+> callback, a subscription callback, another service callback, an action
+> callback, …), the executor is busy waiting for itself and the response
+> never arrives. The program hangs silently until the future times out or
+> `Ctrl-C` is pressed.
+>
+> Safe places to call `spin_until_future_complete`:
+> - `main()` *before* you start spinning, e.g. one-shot startup queries.
+> - A separate thread that does **not** spin the same node.
+> - A unit test that constructs its own short-lived executor.
+>
+> When in doubt, use the callback form. It works everywhere.
 
 ### Error Handling
 

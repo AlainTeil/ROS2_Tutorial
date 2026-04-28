@@ -49,6 +49,21 @@ ros2 launch lesson_30_gazebo_world gazebo_arena_launch.py
 2. Change the ground plane material to a textured surface.
 3. Create a second world variant with a narrow corridor.
 
+## Testing
+
+Gazebo cannot run in headless CI, so this package ships a launch
+description **smoke test**:
+
+- `test/test_gazebo_arena_launch_smoke.py` — loads
+  `gazebo_arena_launch.py` via `runpy` and asserts it produces at least
+  four entities (`gz_sim`, `robot_state_publisher`, spawn entity, ros↔gz
+  bridge). Catches xacro/world path regressions without launching gz.
+
+```bash
+colcon test --packages-select lesson_30_gazebo_world
+colcon test-result --verbose
+```
+
 ## Key Takeaways
 
 - SDF `<world>` elements define terrain, walls, lighting, and physics.

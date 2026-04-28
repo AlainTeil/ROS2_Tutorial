@@ -39,11 +39,44 @@ ros2 topic echo /scan
 ros2 topic echo /imu
 ```
 
+## Testing
+
+Gazebo Harmonic cannot run in headless CI, so this package ships both a
+GTest unit test for URDF correctness and a launch description **smoke
+test**:
+
+- `test/test_gazebo_urdf.cpp` — parses the generated URDF with
+  `urdf::Model` and verifies links, joints, and inertia values.
+- `test/test_gazebo_simplebot_launch_smoke.py` — loads
+  `gazebo_simplebot_launch.py` via `runpy` and asserts it produces at
+  least four entities (`gz_sim`, `robot_state_publisher`, spawn entity,
+  `ros_gz_bridge`). Catches xacro / bridge config / world path
+  regressions without launching `gz sim`.
+
+```bash
+colcon test --packages-select lesson_28_gazebo_plugins
+colcon test-result --verbose
+```
+
 ## Exercises
 
 1. Add a camera plugin and bridge the image topic to ROS2.
 2. Use `ros2 topic hz /scan` to verify the lidar rate.
 3. Change the lidar FOV and observe the effect in RViz2.
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| `/cmd_vel` published but the robot does not move | DiffDrive plugin sees no joints, or wheel names mismatch | Match `<left_joint>` / `<right_joint>` in the `<gazebo>` block to the URDF joint names exactly |
+| `/scan` is empty | Lidar plugin's `<topic>` differs from the bridge YAML entry | Confirm the SDF `<topic>` and the YAML `gz_topic_name` are byte-for-byte identical |
+| `/odom` updates but TF tree is broken in RViz2 | DiffDrive plugin's `<odom_publish_frequency>` is 0 or `<frame_id>` is missing | Set both explicitly; verify with `ros2 run tf2_tools view_frames` |
+| Sensor topics flicker on/off in `ros2 topic list` | The bridge process is restarting because of a YAML parse error | Run the bridge directly: `ros2 run ros_gz_bridge parameter_bridge --ros-args -p config_file:=…` |
+| `imu` orientation drifts even with the robot stationary | IMU plugin uses default noise model | Add an explicit `<noise>` block or set `<always_on>true</always_on>` and a higher `<update_rate>` |
+| Plugin loads but emits nothing in headless mode | Sensor plugins need the `sensors` system, which is not loaded by default in `gz sim -s` | Add `<plugin name="gz::sim::systems::Sensors" filename="gz-sim-sensors-system"/>` to the world SDF |
+
+For any plugin issue, the fastest diagnostic is the verbose log:
+`gz sim -v 4 …`. Look for `[Err]` lines that mention the plugin name.
 
 ## Key Takeaways
 

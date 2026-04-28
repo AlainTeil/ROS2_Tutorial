@@ -47,10 +47,13 @@ install(DIRECTORY launch/
 # --- Tests ---
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
+  find_package(ament_cmake_pytest REQUIRED)
   ament_add_gtest(test_obstacle_avoidance
     test/test_obstacle_avoidance.cpp
   )
   target_link_libraries(test_obstacle_avoidance obstacle_avoidance_lib)
+  ament_add_pytest_test(test_autonomous_sim_launch_smoke
+    test/test_autonomous_sim_launch_smoke.py)
 endif()
 
 ament_package()

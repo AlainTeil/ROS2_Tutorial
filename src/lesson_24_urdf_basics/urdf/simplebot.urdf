@@ -34,9 +34,14 @@
     <inertial>
       <mass value="5.0"/>
       <origin xyz="0 0 0.05" rpy="0 0 0"/>
-      <!-- Inertia of a box: Ixx=m/12*(y²+z²), etc. -->
-      <inertia ixx="0.0458" ixy="0" ixz="0"
-               iyy="0.0292" iyz="0" izz="0.0521"/>
+      <!-- Inertia of a solid box of mass m and dimensions (Lx, Ly, Lz):
+             Ixx = m/12 * (Ly^2 + Lz^2) = 5/12 * (0.09 + 0.01) = 0.0417
+             Iyy = m/12 * (Lx^2 + Lz^2) = 5/12 * (0.16 + 0.01) = 0.0708
+             Izz = m/12 * (Lx^2 + Ly^2) = 5/12 * (0.16 + 0.09) = 0.1042
+           Note: Lx=0.40 > Ly=0.30 > Lz=0.10 implies Izz > Iyy > Ixx,
+           which is the only ordering consistent with the box geometry. -->
+      <inertia ixx="0.0417" ixy="0" ixz="0"
+               iyy="0.0708" iyz="0" izz="0.1042"/>
     </inertial>
   </link>
 
@@ -55,9 +60,13 @@
     </collision>
     <inertial>
       <mass value="0.5"/>
-      <!-- Inertia of a cylinder about its central axis -->
-      <inertia ixx="0.000146" ixy="0" ixz="0"
-               iyy="0.000146" iyz="0" izz="0.000625"/>
+      <!-- Solid cylinder of mass m, radius r, length L (axis along local z):
+             Izz (about central axis) = m * r^2 / 2
+                                      = 0.5 * 0.05^2 / 2          = 0.000625
+             Ixx = Iyy (perpendicular) = m/12 * (3*r^2 + L^2)
+                                       = 0.5/12 * (3*0.05^2 + 0.02^2) = 0.000329 -->
+      <inertia ixx="0.000329" ixy="0" ixz="0"
+               iyy="0.000329" iyz="0" izz="0.000625"/>
     </inertial>
   </link>
 
@@ -83,8 +92,9 @@
     </collision>
     <inertial>
       <mass value="0.5"/>
-      <inertia ixx="0.000146" ixy="0" ixz="0"
-               iyy="0.000146" iyz="0" izz="0.000625"/>
+      <!-- Same cylinder as left_wheel (see derivation above). -->
+      <inertia ixx="0.000329" ixy="0" ixz="0"
+               iyy="0.000329" iyz="0" izz="0.000625"/>
     </inertial>
   </link>
 

@@ -2,6 +2,7 @@
 /// @brief Publishes visualization markers for robot waypoints.
 #pragma once
 
+#include <span>
 #include <vector>
 
 #include "rclcpp/rclcpp.hpp"
@@ -39,8 +40,11 @@ struct MarkerFactory {
                                                                  double scale = 0.3);
 
   /// Build a complete MarkerArray for a set of waypoints.
+  ///
+  /// `waypoints` is a `std::span<const Waypoint>` (C++20) so any contiguous
+  /// container (vector, array, ...) is accepted without copying.
   [[nodiscard]] static visualization_msgs::msg::MarkerArray build_waypoint_markers(
-      const std::string& frame_id, const std::vector<Waypoint>& waypoints);
+      const std::string& frame_id, std::span<const Waypoint> waypoints);
 };
 
 /// Node that periodically publishes waypoint markers.

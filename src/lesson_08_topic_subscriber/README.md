@@ -74,6 +74,26 @@ Using a bounded `std::deque` keeps only the last *N* values, preventing
 unbounded memory growth while providing efficient front removal via
 `pop_front()`.
 
+### Concurrency Note
+
+The single-threaded executor used here means the callback never runs
+concurrently with itself, but the public accessors (`average()`,
+`window_size()`) **may** be called from another thread (a test, a
+diagnostic timer, a future composition). We therefore guard the deque
+with a `mutable std::mutex mutex_` and take a `std::lock_guard` in both
+the callback and every accessor:
+
+```cpp
+mutable std::mutex mutex_;
+// in the callback and in average():
+std::lock_guard const lock(mutex_);
+```
+
+`mutable` lets the lock be acquired from `const` member functions. This
+pattern — "shared state lives behind a single mutex, public API is
+thread-safe by default" — is reused throughout the curriculum (Lessons
+11, 13, 31, 32).
+
 ## Code
 
 | File | Purpose |

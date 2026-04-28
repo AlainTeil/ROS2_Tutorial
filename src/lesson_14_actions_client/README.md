@@ -51,6 +51,24 @@ void feedback_callback(GoalHandle::SharedPtr,
 }
 ```
 
+### Multiple In-Flight Goals
+
+`NavigateActionClient` keeps an internal `unordered_map<GoalUUID, …>` of
+goals that have been accepted but not yet resolved, guarded by a mutex.
+That has two practical consequences:
+
+- Calling `send_goal()` twice in a row does **not** evict the first goal.
+  Both run concurrently on the server (assuming the server allows it);
+  each invokes its own feedback and result callbacks independently.
+- `cancel_goal()` with no arguments cancels every active goal, while the
+  `cancel_goal(uuid)` overload targets a single goal. Use
+  `active_goal_count()` to inspect the queue.
+
+> Earlier drafts of this lesson stored a single `current_goal_handle_`
+> member, which silently broke cancel semantics when a second goal was
+> sent. The map-based design closes that gap and lets the lesson scale
+> to client patterns used by Nav2 and BT.CPP.
+
 ## Code
 
 | File | Purpose |

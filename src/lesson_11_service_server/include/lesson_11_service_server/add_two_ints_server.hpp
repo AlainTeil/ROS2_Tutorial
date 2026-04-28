@@ -3,6 +3,7 @@
 /// @file add_two_ints_server.hpp
 /// @brief Service server for AddTwoInts and ComputeTrajectory.
 
+#include <atomic>
 #include <cmath>
 #include <cstdint>
 
@@ -35,12 +36,14 @@ class ServiceServerNode : public rclcpp::Node {
  public:
   ServiceServerNode();
 
-  /// @return Number of AddTwoInts requests served.
-  [[nodiscard]] std::size_t get_add_request_count() const noexcept { return add_count_; }
+  /// @return Number of AddTwoInts requests served. Thread-safe.
+  [[nodiscard]] std::size_t get_add_request_count() const noexcept {
+    return add_count_.load(std::memory_order_relaxed);
+  }
 
-  /// @return Number of ComputeTrajectory requests served.
+  /// @return Number of ComputeTrajectory requests served. Thread-safe.
   [[nodiscard]] std::size_t get_trajectory_request_count() const noexcept {
-    return trajectory_count_;
+    return trajectory_count_.load(std::memory_order_relaxed);
   }
 
  private:
@@ -55,8 +58,8 @@ class ServiceServerNode : public rclcpp::Node {
   rclcpp::Service<AddTwoInts>::SharedPtr add_service_;
   rclcpp::Service<ComputeTrajectory>::SharedPtr trajectory_service_;
 
-  std::size_t add_count_{0};
-  std::size_t trajectory_count_{0};
+  std::atomic<std::size_t> add_count_{0};
+  std::atomic<std::size_t> trajectory_count_{0};
 };
 
 }  // namespace lesson_11

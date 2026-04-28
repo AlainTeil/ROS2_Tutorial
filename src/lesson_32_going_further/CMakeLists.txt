@@ -57,10 +57,12 @@ install(DIRECTORY launch/
 # --- Tests ---
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
+  find_package(launch_testing_ament_cmake REQUIRED)
   ament_add_gtest(test_capstone_node
     test/test_capstone_node.cpp
   )
   target_link_libraries(test_capstone_node capstone_node_lib)
+  add_launch_test(test/test_capstone_launch.py)
 endif()
 
 ament_package()

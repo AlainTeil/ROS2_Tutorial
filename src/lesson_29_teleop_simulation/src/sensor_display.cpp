@@ -6,7 +6,7 @@
 
 namespace lesson_29 {
 
-std::optional<NearestObstacle> ScanProcessor::find_nearest(const std::vector<float>& ranges,
+std::optional<NearestObstacle> ScanProcessor::find_nearest(std::span<const float> ranges,
                                                            float range_min, float range_max,
                                                            float angle_min, float angle_increment) {
   float best_range = std::numeric_limits<float>::max();

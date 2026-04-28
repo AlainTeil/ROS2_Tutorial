@@ -46,6 +46,21 @@ colcon build --packages-select lesson_20_composable_nodes
 ros2 launch lesson_20_composable_nodes composable_launch.py
 ```
 
+## Testing
+
+This package ships both unit tests and a `launch_testing` integration test:
+
+- `test/test_composable_publisher.cpp` — GTest unit test for the publisher component.
+- `test/test_composable_subscriber.cpp` — GTest unit test for the subscriber component.
+- `test/test_composable_launch.py` — `launch_testing` integration test that
+  loads both components into a `ComponentContainer`, observes traffic on
+  `/counter`, and asserts a clean container shutdown.
+
+```bash
+colcon test --packages-select lesson_20_composable_nodes
+colcon test-result --verbose
+```
+
 ## Exercises
 
 1. Add a third component that transforms the received value and publishes

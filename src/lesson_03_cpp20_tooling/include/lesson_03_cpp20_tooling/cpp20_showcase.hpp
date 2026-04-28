@@ -28,20 +28,26 @@ namespace lesson_03 {
 // --------------------------------------------------------------------------- //
 
 /// @brief Find the maximum reading in a collection.
-/// @param readings A vector of double values.
-/// @return The maximum value, or std::nullopt if the vector is empty.
-[[nodiscard]] std::optional<double> find_max_reading(const std::vector<double>& readings);
+/// @param readings A contiguous range of double values. Accepts a
+///        `std::vector<double>`, `std::array<double, N>`, or any other
+///        container convertible to `std::span<const double>` without copying.
+/// @return The maximum value, or std::nullopt if the range is empty.
+[[nodiscard]] std::optional<double> find_max_reading(std::span<const double> readings);
 
 // --------------------------------------------------------------------------- //
 // 3. C++20 Ranges — functional-style collection processing
 // --------------------------------------------------------------------------- //
 
 /// @brief Filter readings, keeping only those within a valid range.
-/// @param readings Input readings.
+///
+/// Implemented with a C++20 ranges pipeline (`std::views::filter`).
+/// In C++23 the body could collapse further to `... | std::ranges::to<std::vector>()`.
+///
+/// @param readings Input readings (any contiguous range).
 /// @param min_val Minimum valid value (inclusive).
 /// @param max_val Maximum valid value (inclusive).
 /// @return A new vector containing only valid readings.
-[[nodiscard]] std::vector<double> filter_valid_readings(const std::vector<double>& readings,
+[[nodiscard]] std::vector<double> filter_valid_readings(std::span<const double> readings,
                                                         double min_val, double max_val);
 
 // --------------------------------------------------------------------------- //

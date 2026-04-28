@@ -22,9 +22,24 @@ __pycache__/
 
 # Doxygen output
 docs/
+doxygen-warnings.log
 
 # compile_commands.json (generated per-package by CMake)
 **/compile_commands.json
+
+# Static analysis / coverage outputs
+cppcheck-report.txt
+clang-tidy-output.txt
+coverage.info
+coverage-html/
+*.gcda
+*.gcno
+*.gcov
+
+# Python / linter caches (ruff, pytest, mypy)
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
 
 # OS files
 .DS_Store
