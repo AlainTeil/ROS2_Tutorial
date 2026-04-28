@@ -55,7 +55,7 @@ jobs:
       CCACHE_COMPILERCHECK: content
       CCACHE_MAXSIZE: 1G
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install ROS dependencies
         run: |
@@ -103,7 +103,7 @@ jobs:
 
       - name: Upload test logs on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: colcon-test-logs
           path: log/
@@ -112,7 +112,7 @@ jobs:
   format-check:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install clang-format
         run: |
@@ -133,7 +133,7 @@ jobs:
       CCACHE_COMPILERCHECK: content
       CCACHE_MAXSIZE: 1G
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install dependencies
         run: |
@@ -199,7 +199,7 @@ jobs:
 
       - name: Upload clang-tidy log on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: clang-tidy-output
           path: clang-tidy-output.txt
@@ -208,7 +208,7 @@ jobs:
   docs:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Doxygen
         run: |
@@ -227,7 +227,7 @@ jobs:
           fi
 
       - name: Upload generated docs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: doxygen-html
           path: docs/html
@@ -236,7 +236,7 @@ jobs:
   cppcheck:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install cppcheck
         run: |
@@ -248,7 +248,7 @@ jobs:
 
       - name: Upload cppcheck report on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: cppcheck-report
           path: cppcheck-report.txt
@@ -259,7 +259,7 @@ jobs:
     container:
       image: ros:jazzy-ros-base
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install dependencies
         run: |
@@ -277,7 +277,7 @@ jobs:
 
       - name: Upload coverage HTML report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-html
           path: coverage-html/
@@ -285,7 +285,7 @@ jobs:
 
       - name: Upload coverage info (lcov tracefile)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-info
           path: coverage.info
@@ -293,7 +293,7 @@ jobs:
 
       - name: Upload to Codecov
         if: always()
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: coverage.info
           flags: unittests
@@ -321,7 +321,7 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0:halt_on_error=1:abort_on_error=1:print_summary=1
       UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install dependencies
         run: |
@@ -369,7 +369,7 @@ jobs:
 
       - name: Upload sanitizer test logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: sanitizer-test-logs
           path: log/
