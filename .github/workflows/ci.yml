@@ -12,6 +12,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # Opt JavaScript actions into Node.js 24 ahead of GitHub's default switch
+  # (June 2026). Silences the Node.js 20 deprecation warning emitted by
+  # actions still bundled with Node 20 (e.g. actions/upload-artifact@v5).
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   ROS_DISTRO: jazzy
   # Shared apt package list. Single source of truth for build-and-test
   # and clang-tidy jobs so they cannot drift apart.
