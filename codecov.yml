@@ -1,0 +1,24 @@
+# Codecov configuration for ROS2_Tutorial.
+# Reference: https://docs.codecov.com/docs/codecov-yaml
+coverage:
+  status:
+    project:
+      default:
+        target: auto      # compare against the parent commit
+        threshold: 1%     # tolerate small dips without failing the check
+    patch:
+      default:
+        target: 80%       # new/changed lines should be well-tested
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: true   # only comment on PRs that move coverage
+
+ignore:
+  - "build/**"
+  - "install/**"
+  - "log/**"
+  - "docs/**"
+  - "**/test/**"
+  - "**/*_test.cpp"

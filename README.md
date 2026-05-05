@@ -1,7 +1,7 @@
 # ROS2 C++20 Tutorial
 
 [![CI](https://github.com/AlainTeil/ROS2_Tutorial/actions/workflows/ci.yml/badge.svg)](https://github.com/AlainTeil/ROS2_Tutorial/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/AlainTeil/ROS2_Tutorial/branch/main/graph/badge.svg)](https://codecov.io/gh/AlainTeil/ROS2_Tutorial)
+[![codecov](https://codecov.io/gh/AlainTeil/ROS2_Tutorial/graph/badge.svg?token=N3WAESS0WB)](https://codecov.io/gh/AlainTeil/ROS2_Tutorial)
 [![Docs](https://github.com/AlainTeil/ROS2_Tutorial/actions/workflows/pages.yml/badge.svg)](https://github.com/AlainTeil/ROS2_Tutorial/actions/workflows/pages.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -214,7 +214,7 @@ every push and pull request:
 | `format-check` | `clang-format --dry-run --Werror` over `src/` |
 | `clang-tidy` | `clang-tidy` against a merged `compile_commands.json`; **fails on any warning** (uses `ccache`) |
 | `cppcheck` | `scripts/run_cppcheck.sh`; **fails on any unsuppressed finding** |
-| `coverage` | `scripts/coverage.sh`; uploads `coverage-html` and `coverage.info` as artifacts and pushes results to Codecov |
+| `coverage` | `scripts/coverage.sh`; uploads `coverage-html` and `coverage.info` as artifacts and pushes results to Codecov (policy in [`codecov.yml`](codecov.yml): project drop ≤ 1%, patch ≥ 80%) |
 | `sanitizers` | Debug build with `-fsanitize=address,undefined`, runs the test suite under ASan + UBSan; informational (`continue-on-error`) until the suite is sanitizer-clean |
 | `docs` | `doxygen Doxyfile`; **fails on any warning** and uploads `docs/html` as an artifact |
 
