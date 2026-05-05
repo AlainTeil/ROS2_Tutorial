@@ -296,6 +296,15 @@ jobs:
           path: coverage.info
           if-no-files-found: ignore
 
+      - name: Verify coverage.info is non-empty
+        shell: bash
+        run: |
+          if [[ ! -s coverage.info ]]; then
+            echo "::error::coverage.info is missing or empty - nothing to upload to Codecov"
+            exit 1
+          fi
+          echo "coverage.info size: $(wc -c < coverage.info) bytes, $(wc -l < coverage.info) lines"
+
       - name: Upload to Codecov
         if: always()
         uses: codecov/codecov-action@v5
@@ -303,11 +312,9 @@ jobs:
           files: coverage.info
           flags: unittests
           name: ros2-tutorial-coverage
-          fail_ci_if_error: false
-          verbose: false
+          fail_ci_if_error: true
+          verbose: true
         env:
-          # Optional: set CODECOV_TOKEN as a repository secret for
-          # private repos or to silence rate-limited public uploads.
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   sanitizers:
