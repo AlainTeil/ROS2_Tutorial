@@ -110,9 +110,8 @@ TEST_F(ServiceServerNodeTest, AddTwoIntsServiceReturnsSum) {
 TEST_F(ServiceServerNodeTest, ComputeTrajectoryServiceFeasibleCase) {
   auto server = std::make_shared<lesson_11::ServiceServerNode>();
   auto client_node = std::make_shared<rclcpp::Node>("test_traj_client");
-  auto client =
-      client_node->create_client<lesson_11_service_server::srv::ComputeTrajectory>(
-          "compute_trajectory");
+  auto client = client_node->create_client<lesson_11_service_server::srv::ComputeTrajectory>(
+      "compute_trajectory");
 
   rclcpp::executors::MultiThreadedExecutor exec;
   exec.add_node(server);
@@ -140,9 +139,8 @@ TEST_F(ServiceServerNodeTest, ComputeTrajectoryServiceFeasibleCase) {
 TEST_F(ServiceServerNodeTest, ComputeTrajectoryServiceInfeasibleWhenZeroVelocity) {
   auto server = std::make_shared<lesson_11::ServiceServerNode>();
   auto client_node = std::make_shared<rclcpp::Node>("test_traj_inf_client");
-  auto client =
-      client_node->create_client<lesson_11_service_server::srv::ComputeTrajectory>(
-          "compute_trajectory");
+  auto client = client_node->create_client<lesson_11_service_server::srv::ComputeTrajectory>(
+      "compute_trajectory");
 
   rclcpp::executors::MultiThreadedExecutor exec;
   exec.add_node(server);

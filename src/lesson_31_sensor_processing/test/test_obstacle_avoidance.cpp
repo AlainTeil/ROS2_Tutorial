@@ -121,8 +121,8 @@ class ObstacleAvoidanceNodeTest : public ::testing::Test {
     scan.header.frame_id = "laser";
     scan.angle_min = -1.57F;
     scan.angle_max = 1.57F;
-    scan.angle_increment = static_cast<float>((scan.angle_max - scan.angle_min) /
-                                              static_cast<float>(n));
+    scan.angle_increment =
+        static_cast<float>((scan.angle_max - scan.angle_min) / static_cast<float>(n));
     scan.range_min = 0.05F;
     scan.range_max = 10.0F;
     scan.ranges.resize(n, side_range);

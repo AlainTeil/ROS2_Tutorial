@@ -182,8 +182,7 @@ TEST_F(CapstoneRobotTest, ReactivateAfterDeactivate) {
 
 namespace {
 
-void spin_until(rclcpp::executors::SingleThreadedExecutor& exec,
-                std::function<bool()> predicate,
+void spin_until(rclcpp::executors::SingleThreadedExecutor& exec, std::function<bool()> predicate,
                 std::chrono::milliseconds timeout = std::chrono::seconds(2)) {
   auto deadline = std::chrono::steady_clock::now() + timeout;
   while (std::chrono::steady_clock::now() < deadline && !predicate()) {
@@ -203,8 +202,9 @@ TEST_F(CapstoneRobotTest, ActiveTimerPublishesHeartbeat) {
   auto sub_node = std::make_shared<rclcpp::Node>("test_hb_sub");
   std::atomic<int> hb_count{0};
   auto sub = sub_node->create_subscription<std_msgs::msg::String>(
-      "heartbeat", 10,
-      [&](std_msgs::msg::String::ConstSharedPtr) { hb_count.fetch_add(1, std::memory_order_relaxed); });
+      "heartbeat", 10, [&](std_msgs::msg::String::ConstSharedPtr) {
+        hb_count.fetch_add(1, std::memory_order_relaxed);
+      });
 
   rclcpp::executors::SingleThreadedExecutor exec;
   exec.add_node(node_->get_node_base_interface());
@@ -222,8 +222,7 @@ TEST_F(CapstoneRobotTest, GetPoseServiceReturnsFormattedPose) {
   node_->on_activate(node_->get_current_state());
 
   auto client_node = std::make_shared<rclcpp::Node>("test_pose_client");
-  auto client =
-      client_node->create_client<example_interfaces::srv::Trigger>("get_pose");
+  auto client = client_node->create_client<example_interfaces::srv::Trigger>("get_pose");
 
   rclcpp::executors::SingleThreadedExecutor exec;
   exec.add_node(node_->get_node_base_interface());
@@ -235,11 +234,10 @@ TEST_F(CapstoneRobotTest, GetPoseServiceReturnsFormattedPose) {
 
   auto request = std::make_shared<example_interfaces::srv::Trigger::Request>();
   auto future = client->async_send_request(request);
-  spin_until(exec,
-             [&] {
-               return future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready;
-             },
-             std::chrono::seconds(2));
+  spin_until(
+      exec,
+      [&] { return future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready; },
+      std::chrono::seconds(2));
   ASSERT_EQ(future.wait_for(std::chrono::seconds(0)), std::future_status::ready);
 
   auto response = future.get();
@@ -273,12 +271,12 @@ TEST_F(CapstoneRobotTest, PatrolActionRejectedWhenInactive) {
   goal.target_x = 1.0;
   goal.target_y = 0.0;
   auto goal_future = client->async_send_goal(goal);
-  spin_until(exec,
-             [&] {
-               return goal_future.wait_for(std::chrono::milliseconds(0)) ==
-                      std::future_status::ready;
-             },
-             std::chrono::seconds(2));
+  spin_until(
+      exec,
+      [&] {
+        return goal_future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready;
+      },
+      std::chrono::seconds(2));
   ASSERT_EQ(goal_future.wait_for(std::chrono::seconds(0)), std::future_status::ready);
   // Rejected goals return a null handle.
   EXPECT_EQ(goal_future.get(), nullptr);
@@ -309,23 +307,23 @@ TEST_F(CapstoneRobotTest, PatrolActionAcceptedAndCompletes) {
   goal.target_x = 0.5;
   goal.target_y = 0.0;
   auto goal_future = client->async_send_goal(goal);
-  spin_until(exec,
-             [&] {
-               return goal_future.wait_for(std::chrono::milliseconds(0)) ==
-                      std::future_status::ready;
-             },
-             std::chrono::seconds(2));
+  spin_until(
+      exec,
+      [&] {
+        return goal_future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready;
+      },
+      std::chrono::seconds(2));
   ASSERT_EQ(goal_future.wait_for(std::chrono::seconds(0)), std::future_status::ready);
   auto handle = goal_future.get();
   ASSERT_NE(handle, nullptr);
 
   auto result_future = client->async_get_result(handle);
-  spin_until(exec,
-             [&] {
-               return result_future.wait_for(std::chrono::milliseconds(0)) ==
-                      std::future_status::ready;
-             },
-             std::chrono::seconds(3));
+  spin_until(
+      exec,
+      [&] {
+        return result_future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready;
+      },
+      std::chrono::seconds(3));
   ASSERT_EQ(result_future.wait_for(std::chrono::seconds(0)), std::future_status::ready);
 
   auto wrapped = result_future.get();
@@ -361,12 +359,12 @@ TEST_F(CapstoneRobotTest, PatrolActionCancelMidFlight) {
   goal.target_x = 100.0;  // 100 m at 0.1 m/s = 1000 s — plenty of time.
   goal.target_y = 0.0;
   auto goal_future = client->async_send_goal(goal);
-  spin_until(exec,
-             [&] {
-               return goal_future.wait_for(std::chrono::milliseconds(0)) ==
-                      std::future_status::ready;
-             },
-             std::chrono::seconds(2));
+  spin_until(
+      exec,
+      [&] {
+        return goal_future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready;
+      },
+      std::chrono::seconds(2));
   auto handle = goal_future.get();
   ASSERT_NE(handle, nullptr);
 
@@ -374,21 +372,21 @@ TEST_F(CapstoneRobotTest, PatrolActionCancelMidFlight) {
   spin_until(exec, [] { return false; }, std::chrono::milliseconds(200));
 
   auto cancel_future = client->async_cancel_goal(handle);
-  spin_until(exec,
-             [&] {
-               return cancel_future.wait_for(std::chrono::milliseconds(0)) ==
-                      std::future_status::ready;
-             },
-             std::chrono::seconds(2));
+  spin_until(
+      exec,
+      [&] {
+        return cancel_future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready;
+      },
+      std::chrono::seconds(2));
   ASSERT_EQ(cancel_future.wait_for(std::chrono::seconds(0)), std::future_status::ready);
 
   auto result_future = client->async_get_result(handle);
-  spin_until(exec,
-             [&] {
-               return result_future.wait_for(std::chrono::milliseconds(0)) ==
-                      std::future_status::ready;
-             },
-             std::chrono::seconds(3));
+  spin_until(
+      exec,
+      [&] {
+        return result_future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready;
+      },
+      std::chrono::seconds(3));
   ASSERT_EQ(result_future.wait_for(std::chrono::seconds(0)), std::future_status::ready);
 
   auto wrapped = result_future.get();
