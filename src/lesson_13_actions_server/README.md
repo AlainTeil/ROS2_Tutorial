@@ -113,8 +113,9 @@ ros2 action send_goal /navigate_to_point \
 
 ## Exercises
 
-1. Add a goal-rejection policy that refuses goals beyond a configurable
-   maximum distance.
+1. The server already rejects goals beyond a hard-coded 100 m. Replace the
+   constant with a ROS2 **parameter** (`max_distance`, default 100.0) so it
+   can be tuned at launch time without recompiling.
 2. Publish more detailed feedback (e.g., estimated time remaining).
 3. Implement a second action type in the same node for a different robot
    behavior.

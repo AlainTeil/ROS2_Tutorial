@@ -29,12 +29,15 @@ void ServiceServerNode::handle_add(const AddTwoInts::Request::SharedPtr request,
   // rclcpp invokes this callback from the executor thread. If we throw here
   // the exception unwinds into rclcpp internals and the node enters an
   // undefined state, so every public-facing handler must be noexcept-in-effect.
+  // The body below is exception-free in practice (POD arithmetic + field
+  // assignments) but the guards stay as a defensive teaching pattern.
   try {
     response->sum = request->a + request->b;
     add_count_.fetch_add(1, std::memory_order_relaxed);
 
     RCLCPP_INFO(get_logger(), "AddTwoInts: %ld + %ld = %ld", static_cast<long>(request->a),
                 static_cast<long>(request->b), static_cast<long>(response->sum));
+    // LCOV_EXCL_START — defensive arms unreachable from POD arithmetic.
   } catch (const std::exception& e) {
     RCLCPP_ERROR(get_logger(), "AddTwoInts handler failed: %s", e.what());
     response->sum = 0;
@@ -42,6 +45,7 @@ void ServiceServerNode::handle_add(const AddTwoInts::Request::SharedPtr request,
     RCLCPP_ERROR(get_logger(), "AddTwoInts handler failed: unknown exception");
     response->sum = 0;
   }
+  // LCOV_EXCL_STOP
 }
 
 void ServiceServerNode::handle_trajectory(const ComputeTrajectory::Request::SharedPtr request,
@@ -61,6 +65,7 @@ void ServiceServerNode::handle_trajectory(const ComputeTrajectory::Request::Shar
                 "time=%.2fs feasible=%s",
                 request->start_x, request->start_y, request->goal_x, request->goal_y, dist,
                 response->estimated_time, response->feasible ? "true" : "false");
+    // LCOV_EXCL_START — defensive arms unreachable from the math above.
   } catch (const std::exception& e) {
     RCLCPP_ERROR(get_logger(), "ComputeTrajectory handler failed: %s", e.what());
     response->distance = 0.0;
@@ -72,6 +77,7 @@ void ServiceServerNode::handle_trajectory(const ComputeTrajectory::Request::Shar
     response->estimated_time = 0.0;
     response->feasible = false;
   }
+  // LCOV_EXCL_STOP
 }
 
 }  // namespace lesson_11

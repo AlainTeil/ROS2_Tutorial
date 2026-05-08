@@ -62,6 +62,14 @@ if(BUILD_TESTING)
     test/test_capstone_node.cpp
   )
   target_link_libraries(test_capstone_node capstone_node_lib)
+  ament_target_dependencies(test_capstone_node
+    rclcpp
+    rclcpp_action
+    std_msgs
+    example_interfaces
+    lifecycle_msgs
+    lesson_13_actions_server
+  )
   add_launch_test(test/test_capstone_launch.py)
 endif()
 

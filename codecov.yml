@@ -22,3 +22,11 @@ ignore:
   - "docs/**"
   - "**/test/**"
   - "**/*_test.cpp"
+  # Thin rclcpp::spin entry points — covered by integration, not unit tests.
+  - "**/*_main.cpp"
+  # rosidl-generated code: not user-authored, large surface, biases coverage.
+  - "**/rosidl_generator_**"
+  - "**/rosidl_typesupport_**"
+  - "**/rosidl_typesupport_introspection_**"
+  - "**/dds_fastrtps/**"
+  - "**/CMakeFiles/**"

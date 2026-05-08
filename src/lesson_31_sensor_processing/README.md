@@ -65,10 +65,19 @@ ros2 launch lesson_31_sensor_processing autonomous_sim_launch.py
 
 ## Testing
 
-GTest exercises `ObstacleAvoidance` with synthetic scans (no ROS
-graph). A launch description **smoke test** covers the full simulation
-stack without requiring Gazebo:
+Two GTest fixtures cover the obstacle-avoidance logic at different
+levels, plus a launch-description **smoke test** that exercises the
+full simulation stack without requiring Gazebo:
 
+- `test/test_obstacle_avoidance.cpp`
+  - `AvoidanceLogicTest` — pure-function tests over the
+    `AvoidanceLogic` struct (sector minima, decision table,
+    velocity scaling). No ROS graph required.
+  - `ObstacleAvoidanceNodeTest` — spins the `ObstacleAvoidance`
+    node with a `SingleThreadedExecutor`, publishes synthetic
+    `LaserScan` messages, and asserts on the resulting `/cmd_vel`
+    `Twist`. Also covers parameter declaration, malformed-scan
+    rejection and the watchdog-timeout safety stop.
 - `test/test_autonomous_sim_launch_smoke.py` — loads the autonomous
   simulation launch file via `runpy` and verifies its entity list.
 

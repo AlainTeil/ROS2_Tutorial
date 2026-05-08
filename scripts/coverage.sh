@@ -73,8 +73,11 @@ lcov --remove coverage.info \
   '/opt/ros/*' \
   '*/test/*' \
   '*/build/*/rosidl_generator_*/*' \
+  '*/build/*/rosidl_typesupport_*/*' \
+  '*/build/*/rosidl_typesupport_introspection_*/*' \
   '*/build/*/CMakeFiles/*' \
   '*/install/*' \
+  '*_main.cpp' \
   --output-file coverage.info \
   --ignore-errors unused,empty
 
