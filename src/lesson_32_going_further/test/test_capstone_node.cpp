@@ -182,7 +182,8 @@ TEST_F(CapstoneRobotTest, ReactivateAfterDeactivate) {
 
 namespace {
 
-void spin_until(rclcpp::executors::SingleThreadedExecutor& exec, std::function<bool()> predicate,
+void spin_until(rclcpp::executors::SingleThreadedExecutor& exec,
+                std::function<bool()> const& predicate,
                 std::chrono::milliseconds timeout = std::chrono::seconds(2)) {
   auto deadline = std::chrono::steady_clock::now() + timeout;
   while (std::chrono::steady_clock::now() < deadline && !predicate()) {

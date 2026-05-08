@@ -127,7 +127,7 @@ TEST_F(NavigateActionServerTest, AcceptsAndCompletesReachableGoal) {
   }
   ASSERT_EQ(goal_future.wait_for(std::chrono::seconds(0)), std::future_status::ready);
 
-  auto goal_handle = goal_future.get();
+  auto const& goal_handle = goal_future.get();
   ASSERT_NE(goal_handle, nullptr);
   EXPECT_EQ(server->get_goals_accepted(), 1U);
 
@@ -142,7 +142,7 @@ TEST_F(NavigateActionServerTest, AcceptsAndCompletesReachableGoal) {
   }
   ASSERT_EQ(result_future.wait_for(std::chrono::seconds(0)), std::future_status::ready);
 
-  auto wrapped = result_future.get();
+  auto const& wrapped = result_future.get();
   EXPECT_EQ(wrapped.code, rclcpp_action::ResultCode::SUCCEEDED);
   EXPECT_TRUE(wrapped.result->success);
   EXPECT_GT(wrapped.result->elapsed_time, 0.0);
@@ -173,7 +173,7 @@ TEST_F(NavigateActionServerTest, RejectsGoalBeyond100Meters) {
   ASSERT_EQ(goal_future.wait_for(std::chrono::seconds(0)), std::future_status::ready);
 
   // Rejected goals return a null handle.
-  auto handle = goal_future.get();
+  auto const& handle = goal_future.get();
   EXPECT_EQ(handle, nullptr);
   EXPECT_EQ(server->get_goals_accepted(), 0U);
 }
@@ -200,7 +200,7 @@ TEST_F(NavigateActionServerTest, ZeroDistanceGoalSucceedsImmediately) {
     exec.spin_some();
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
   }
-  auto goal_handle = goal_future.get();
+  auto const& goal_handle = goal_future.get();
   ASSERT_NE(goal_handle, nullptr);
 
   auto result_future = client->async_get_result(goal_handle);
@@ -212,7 +212,7 @@ TEST_F(NavigateActionServerTest, ZeroDistanceGoalSucceedsImmediately) {
   }
   ASSERT_EQ(result_future.wait_for(std::chrono::seconds(0)), std::future_status::ready);
 
-  auto wrapped = result_future.get();
+  auto const& wrapped = result_future.get();
   EXPECT_EQ(wrapped.code, rclcpp_action::ResultCode::SUCCEEDED);
   EXPECT_TRUE(wrapped.result->success);
   EXPECT_DOUBLE_EQ(wrapped.result->elapsed_time, 0.0);
@@ -241,7 +241,7 @@ TEST_F(NavigateActionServerTest, CancelInFlightGoal) {
     exec.spin_some();
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
   }
-  auto goal_handle = goal_future.get();
+  auto const& goal_handle = goal_future.get();
   ASSERT_NE(goal_handle, nullptr);
 
   // Let it run briefly so the execute() loop publishes feedback at least once.
@@ -265,7 +265,7 @@ TEST_F(NavigateActionServerTest, CancelInFlightGoal) {
   }
   ASSERT_EQ(result_future.wait_for(std::chrono::seconds(0)), std::future_status::ready);
 
-  auto wrapped = result_future.get();
+  auto const& wrapped = result_future.get();
   EXPECT_EQ(wrapped.code, rclcpp_action::ResultCode::CANCELED);
   EXPECT_FALSE(wrapped.result->success);
 }
