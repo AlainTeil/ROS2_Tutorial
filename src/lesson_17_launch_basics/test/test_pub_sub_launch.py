@@ -10,7 +10,6 @@ Run with:  ``colcon test --packages-select lesson_17_launch_basics``
 or directly:  ``launch_test src/lesson_17_launch_basics/test/test_pub_sub_launch.py``
 """
 
-import os
 import time
 import unittest
 
